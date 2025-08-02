@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, ActivityIndicator, Alert } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, ActivityIndicator, Alert, TextInput } from 'react-native';
 
 // Dummy Fitbit data - simulating real API response
 const dummyFitbitData = {
@@ -35,6 +35,11 @@ export default function SignupScreen() {
   const [showProfile, setShowProfile] = useState(false);
   const [showInsights, setShowInsights] = useState(false);
   const [insightsData, setInsightsData] = useState(null);
+  const [showChat, setShowChat] = useState(false);
+  const [chatMessages, setChatMessages] = useState([]);
+  const [chatInput, setChatInput] = useState('');
+  const [chatLoading, setChatLoading] = useState(false);
+  const [currentCardContext, setCurrentCardContext] = useState(null);
 
   // Load existing profile on app start
   useEffect(() => {
@@ -462,6 +467,139 @@ Make insights personalized, actionable, and card-friendly. Focus on the user's s
   const goBackToProfile = () => {
     setShowInsights(false);
     setInsightsData(null);
+    setShowChat(false);
+    setChatMessages([]);
+    setCurrentCardContext(null);
+  };
+
+  const startChatSession = (cardContext = null) => {
+    setShowChat(true);
+    setCurrentCardContext(cardContext);
+    
+    let initialMessage;
+    
+    if (cardContext) {
+      // Start chat with specific card context
+      initialMessage = {
+        id: Date.now(),
+        type: 'assistant',
+        text: `Hi ${userProfile.user.name}! 👋 I'm here to help you with "${cardContext.title}". ${cardContext.insight} ${cardContext.action} What specific questions do you have about this?`,
+        timestamp: new Date().toISOString()
+      };
+    } else {
+      // General chat session
+      initialMessage = {
+        id: Date.now(),
+        type: 'assistant',
+        text: `Hi ${userProfile.user.name}! 👋 I'm your AI health assistant. I can see you have ${userProfile.activity.steps} steps today, ${userProfile.activity.sleepHours} hours of sleep, and a BMI of ${userProfile.user.bmi}. How can I help you with your health goals today?`,
+        timestamp: new Date().toISOString()
+      };
+    }
+    
+    setChatMessages([initialMessage]);
+  };
+
+  const sendChatMessage = async () => {
+    if (!chatInput.trim()) return;
+
+    const userMessage = {
+      id: Date.now(),
+      type: 'user',
+      text: chatInput.trim(),
+      timestamp: new Date().toISOString()
+    };
+
+    setChatMessages(prev => [...prev, userMessage]);
+    setChatInput('');
+    setChatLoading(true);
+
+    try {
+      // Create context from user profile, card context, and chat history
+      let chatContext = `You are a helpful AI health assistant. User Profile: ${userProfile.user.name}, Age: ${userProfile.user.age}, BMI: ${userProfile.user.bmi}, Steps: ${userProfile.activity.steps}, Sleep: ${userProfile.activity.sleepHours}h, Goals: ${userProfile.goals.join(', ')}. Recent chat: ${chatMessages.slice(-3).map(m => `${m.type}: ${m.text}`).join(' | ')}. User's current question: ${userMessage.text}. Please provide a helpful, personalized response based on the user's health data.`;
+      
+      // Add card context if available
+      if (currentCardContext) {
+        chatContext = `FOCUS AREA: ${currentCardContext.title} - ${currentCardContext.insight} - ${currentCardContext.action}. ` + chatContext;
+      }
+
+      console.log('Sending chat context to API:', chatContext);
+
+      const response = await fetch('https://healthstuffentreprenerufi.app.n8n.cloud/webhook/a7717fe9-5fe8-42bd-a0d1-6a52cf884c9f', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          chatinput: chatContext,
+          sessionId: `chat_${Date.now()}`,
+          fitbit_session: `Chat session for ${userProfile.user.name}`
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`Chat API failed: ${response.status}`);
+      }
+
+      const data = await response.json();
+      console.log('Chat API Response:', data);
+      
+      // Try different response formats
+      let aiResponse = "I'm here to help with your health questions!";
+      
+      // Handle array response with output field (actual API format)
+      if (Array.isArray(data) && data[0] && data[0].output) {
+        try {
+          const outputData = JSON.parse(data[0].output);
+          aiResponse = outputData.response || outputData.message || outputData.text || data[0].output;
+        } catch (e) {
+          console.log('Failed to parse output JSON, using raw output');
+          aiResponse = data[0].output;
+        }
+      } else if (data.response) {
+        aiResponse = data.response;
+      } else if (data.message) {
+        aiResponse = data.message;
+      } else if (data.text) {
+        aiResponse = data.text;
+      } else if (data.content) {
+        aiResponse = data.content;
+      } else if (typeof data === 'string') {
+        aiResponse = data;
+      } else if (data.choices && data.choices[0] && data.choices[0].message) {
+        aiResponse = data.choices[0].message.content;
+      } else {
+        // If none of the expected formats, try to extract from the full response
+        console.log('Unexpected response format, trying to extract text...');
+        aiResponse = JSON.stringify(data);
+        // If it's too long, truncate it
+        if (aiResponse.length > 500) {
+          aiResponse = aiResponse.substring(0, 500) + "...";
+        }
+      }
+
+      console.log('Final AI Response:', aiResponse);
+
+      const assistantMessage = {
+        id: Date.now() + 1,
+        type: 'assistant',
+        text: aiResponse,
+        timestamp: new Date().toISOString()
+      };
+
+      setChatMessages(prev => [...prev, assistantMessage]);
+
+    } catch (error) {
+      console.error('Chat error:', error);
+      const errorMessage = {
+        id: Date.now() + 1,
+        type: 'assistant',
+        text: "I'm having trouble connecting right now. Please try again in a moment!",
+        timestamp: new Date().toISOString()
+      };
+      setChatMessages(prev => [...prev, errorMessage]);
+    } finally {
+      setChatLoading(false);
+    }
   };
 
   // Helper function to get card colors
@@ -475,6 +613,83 @@ Make insights personalized, actionable, and card-friendly. Focus on the user's s
     };
     return colors[color] || colors.blue;
   };
+
+  // Show chat screen
+  if (showChat) {
+    return (
+      <View style={{ flex: 1, marginTop: 50 }}>
+        <View style={styles.chatHeader}>
+          <View style={styles.chatHeaderContent}>
+            <Text style={styles.chatHeaderTitle}>
+              💬 AI Health Assistant
+              {currentCardContext && (
+                <Text style={styles.chatHeaderSubtitle}>
+                  {'\n'}Focus: {currentCardContext.title}
+                </Text>
+              )}
+            </Text>
+          </View>
+          <TouchableOpacity onPress={goBackToProfile} style={styles.closeButton}>
+            <Text style={styles.closeButtonText}>✕</Text>
+          </TouchableOpacity>
+        </View>
+
+        <ScrollView 
+          style={styles.chatContainer}
+          ref={(ref) => {
+            if (ref) {
+              setTimeout(() => ref.scrollToEnd({ animated: true }), 100);
+            }
+          }}
+        >
+          {chatMessages.map((message) => (
+            <View key={message.id} style={[
+              styles.messageContainer,
+              message.type === 'user' ? styles.userMessage : styles.assistantMessage
+            ]}>
+              <Text style={[
+                styles.messageText,
+                message.type === 'user' ? styles.userMessageText : styles.assistantMessageText
+              ]}>
+                {message.text}
+              </Text>
+              <Text style={styles.messageTime}>
+                {new Date(message.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+              </Text>
+            </View>
+          ))}
+          
+          {chatLoading && (
+            <View style={[styles.messageContainer, styles.assistantMessage]}>
+              <View style={styles.typingIndicator}>
+                <Text style={styles.typingText}>AI is typing</Text>
+                <Text style={styles.typingDots}>...</Text>
+              </View>
+            </View>
+          )}
+        </ScrollView>
+
+        <View style={styles.chatInputContainer}>
+          <TextInput
+            style={styles.chatInput}
+            value={chatInput}
+            onChangeText={setChatInput}
+            placeholder="Ask me about your health..."
+            placeholderTextColor="#999"
+            multiline
+            maxLength={500}
+          />
+          <TouchableOpacity 
+            style={[styles.sendButton, !chatInput.trim() && styles.sendButtonDisabled]} 
+            onPress={sendChatMessage}
+            disabled={!chatInput.trim() || chatLoading}
+          >
+            <Text style={styles.sendButtonText}>📤</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    );
+  }
 
   // Show insights screen
   if (showInsights && insightsData) {
@@ -497,14 +712,29 @@ Make insights personalized, actionable, and card-friendly. Focus on the user's s
               <Text style={styles.actionLabel}>💡 Action:</Text>
               <Text style={styles.actionText}>{card.action}</Text>
             </View>
+            
+            <TouchableOpacity 
+              style={[styles.cardChatButton, { backgroundColor: getCardColor(card.color) }]} 
+              onPress={() => startChatSession(card)}
+            >
+              <Text style={styles.cardChatButtonText}>💬 Chat about this</Text>
+            </TouchableOpacity>
           </View>
         ))}
 
-        <TouchableOpacity style={styles.button} onPress={goBackToProfile}>
-          <Text style={{ color: 'white', textAlign: 'center', fontWeight: 'bold' }}>
-            Back to Profile
-          </Text>
-        </TouchableOpacity>
+        <View style={styles.buttonContainer}>
+          <TouchableOpacity style={[styles.button, styles.chatButton]} onPress={() => startChatSession()}>
+            <Text style={{ color: 'white', textAlign: 'center', fontWeight: 'bold' }}>
+              💬 General Chat
+            </Text>
+          </TouchableOpacity>
+          
+          <TouchableOpacity style={styles.button} onPress={goBackToProfile}>
+            <Text style={{ color: 'white', textAlign: 'center', fontWeight: 'bold' }}>
+              Back to Profile
+            </Text>
+          </TouchableOpacity>
+        </View>
       </ScrollView>
     );
   }
@@ -746,5 +976,141 @@ const styles = {
           fontSize: 14,
           color: '#6B7280',
           lineHeight: 20,
+        },
+        buttonContainer: {
+          flexDirection: 'row',
+          gap: 10,
+          marginTop: 20,
+        },
+        chatButton: {
+          backgroundColor: '#8B5CF6',
+          flex: 1,
+        },
+        chatHeader: {
+          flexDirection: 'row',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          padding: 20,
+          backgroundColor: '#F8FAFC',
+          borderBottomWidth: 1,
+          borderBottomColor: '#E2E8F0',
+        },
+        chatHeaderTitle: {
+          fontSize: 18,
+          fontWeight: 'bold',
+          color: '#1F2937',
+        },
+        chatHeaderContent: {
+          flex: 1,
+        },
+        chatHeaderSubtitle: {
+          fontSize: 14,
+          fontWeight: 'normal',
+          color: '#6B7280',
+        },
+        closeButton: {
+          padding: 8,
+        },
+        closeButtonText: {
+          fontSize: 20,
+          color: '#6B7280',
+        },
+        chatContainer: {
+          flex: 1,
+          padding: 15,
+        },
+        messageContainer: {
+          marginBottom: 15,
+          maxWidth: '80%',
+        },
+        userMessage: {
+          alignSelf: 'flex-end',
+          backgroundColor: '#3B82F6',
+          borderRadius: 18,
+          paddingHorizontal: 16,
+          paddingVertical: 10,
+        },
+        assistantMessage: {
+          alignSelf: 'flex-start',
+          backgroundColor: '#F3F4F6',
+          borderRadius: 18,
+          paddingHorizontal: 16,
+          paddingVertical: 10,
+        },
+        messageText: {
+          fontSize: 16,
+          lineHeight: 22,
+        },
+        userMessageText: {
+          color: 'white',
+        },
+        assistantMessageText: {
+          color: '#1F2937',
+        },
+        messageTime: {
+          fontSize: 12,
+          color: '#9CA3AF',
+          marginTop: 4,
+          textAlign: 'right',
+        },
+        typingIndicator: {
+          flexDirection: 'row',
+          alignItems: 'center',
+        },
+        typingText: {
+          fontSize: 14,
+          color: '#6B7280',
+          fontStyle: 'italic',
+        },
+        typingDots: {
+          fontSize: 16,
+          color: '#6B7280',
+          marginLeft: 4,
+        },
+        chatInputContainer: {
+          flexDirection: 'row',
+          padding: 15,
+          backgroundColor: '#F8FAFC',
+          borderTopWidth: 1,
+          borderTopColor: '#E2E8F0',
+          alignItems: 'flex-end',
+        },
+        chatInput: {
+          flex: 1,
+          backgroundColor: 'white',
+          borderRadius: 20,
+          paddingHorizontal: 16,
+          paddingVertical: 12,
+          marginRight: 10,
+          maxHeight: 100,
+          borderWidth: 1,
+          borderColor: '#E2E8F0',
+          fontSize: 16,
+        },
+        sendButton: {
+          backgroundColor: '#3B82F6',
+          borderRadius: 20,
+          width: 40,
+          height: 40,
+          justifyContent: 'center',
+          alignItems: 'center',
+        },
+        sendButtonDisabled: {
+          backgroundColor: '#9CA3AF',
+        },
+        sendButtonText: {
+          fontSize: 16,
+        },
+        cardChatButton: {
+          marginTop: 12,
+          paddingVertical: 8,
+          paddingHorizontal: 16,
+          borderRadius: 8,
+          alignItems: 'center',
+        },
+        cardChatButtonText: {
+          color: 'white',
+          fontSize: 14,
+          fontWeight: '600',
         },
 };
