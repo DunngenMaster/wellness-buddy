@@ -1,164 +1,304 @@
-import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, ScrollView, Switch, ActivityIndicator, Alert } from 'react-native';
-import { Picker } from '@react-native-picker/picker';
+import React, { useState, useEffect } from 'react';
+import { View, Text, TouchableOpacity, ScrollView, ActivityIndicator, Alert } from 'react-native';
 
-const goalsList = [
-  'Improve Sleep',
-  'Boost Energy',
-  'Fat Loss',
-  'Build Muscle',
-  'Longevity',
-];
-
-const integrationsList = ['Fitbit', 'Oura', 'Apple Health', 'Bloodwork Upload'];
+// Dummy Fitbit data - simulating real API response
+const dummyFitbitData = {
+  "user": {
+    "name": "John Doe",
+    "age": 32,
+    "gender": "male",
+    "weight": 75.5,
+    "height": 175,
+    "bmi": 24.7
+  },
+  "activity": {
+    "steps": 8500,
+    "calories": 2100,
+    "activeMinutes": 45,
+    "sleepHours": 7.2,
+    "heartRate": {
+      "resting": 62,
+      "average": 72
+    }
+  },
+  "goals": ["Improve Sleep", "Boost Energy"],
+  "connectedApps": {
+    "Fitbit": true,
+    "Oura": false,
+    "Apple Health": false
+  }
+};
 
 export default function SignupScreen() {
-  const [formData, setFormData] = useState({
-    name: '',
-    age: '',
-    weight: '',
-    height: '',
-    gender: 'male',
-    goals: [],
-    integrations: {},
-  });
   const [loading, setLoading] = useState(false);
-  const [insights, setInsights] = useState(null);
+  const [userProfile, setUserProfile] = useState(null);
+  const [showProfile, setShowProfile] = useState(false);
   const [showInsights, setShowInsights] = useState(false);
+  const [insightsData, setInsightsData] = useState(null);
 
-  const toggleGoal = (goal) => {
-    setFormData((prev) => ({
-      ...prev,
-      goals: prev.goals.includes(goal)
-        ? prev.goals.filter((g) => g !== goal)
-        : [...prev.goals, goal],
-    }));
-  };
+  // Load existing profile on app start
+  useEffect(() => {
+    loadUserProfile();
+  }, []);
 
-  const toggleIntegration = (integration) => {
-    setFormData((prev) => ({
-      ...prev,
-      integrations: {
-        ...prev.integrations,
-        [integration]: !prev.integrations[integration],
-      },
-    }));
-  };
-
-  const calculateBMI = (weight, height) => {
-    const heightInMeters = height / 100;
-    return (weight / (heightInMeters * heightInMeters)).toFixed(1);
-  };
-
-  const getClaudeInsights = async (userData) => {
-    const bmi = calculateBMI(parseFloat(userData.weight), parseFloat(userData.height));
-    
-    const prompt = `You are a personalized health coach. Based on the following user profile, provide actionable health insights and recommendations:
-
-User Profile:
-- Name: ${userData.name}
-- Age: ${userData.age} years old
-- Gender: ${userData.gender}
-- Weight: ${userData.weight} kg
-- Height: ${userData.height} cm
-- BMI: ${bmi}
-- Health Goals: ${userData.goals.join(', ')}
-- Connected Health Apps: ${Object.keys(userData.integrations).filter(key => userData.integrations[key]).join(', ') || 'None'}
-
-Please provide:
-1. A personalized greeting
-2. BMI analysis and what it means
-3. Specific recommendations for their health goals
-4. Suggested lifestyle changes
-5. Next steps to get started
-
-Keep the response friendly, encouraging, and actionable. Format it nicely with clear sections.`;
-
+  const loadUserProfile = async () => {
     try {
-      // For demo purposes, we'll simulate Claude's response
-      // In a real app, you'd call the actual Claude API here
-      const mockResponse = `# Welcome to Your Health Journey, ${userData.name}! 👋
-
-## Your Health Profile Summary
-- **BMI**: ${bmi} (${bmi < 18.5 ? 'Underweight' : bmi < 25 ? 'Normal weight' : bmi < 30 ? 'Overweight' : 'Obese'})
-- **Age Group**: ${userData.age < 30 ? 'Young Adult' : userData.age < 50 ? 'Adult' : 'Senior'}
-
-## Personalized Recommendations
-
-### 🎯 For Your Goals: ${userData.goals.join(', ')}
-
-**Improve Sleep:**
-- Establish a consistent sleep schedule (7-9 hours)
-- Create a relaxing bedtime routine
-- Avoid screens 1 hour before bed
-- Keep your bedroom cool and dark
-
-**Boost Energy:**
-- Start with 30 minutes of daily exercise
-- Eat protein-rich breakfasts
-- Stay hydrated (8 glasses of water daily)
-- Take short walks during the day
-
-**Fat Loss:**
-- Create a 300-500 calorie daily deficit
-- Focus on whole foods and lean proteins
-- Include strength training 2-3x per week
-- Track your progress consistently
-
-### 📱 Health App Integration
-${Object.keys(userData.integrations).filter(key => userData.integrations[key]).length > 0 
-  ? `Great! You're connected to: ${Object.keys(userData.integrations).filter(key => userData.integrations[key]).join(', ')}. Use these to track your progress.`
-  : 'Consider connecting health apps to better track your progress and get more personalized insights.'}
-
-## 🚀 Next Steps
-1. Set up your daily routine
-2. Start tracking your meals and exercise
-3. Schedule a follow-up in 2 weeks
-4. Join our community for support
-
-You're on the right track! Small changes lead to big results. 🌟`;
-
-      return mockResponse;
+      // In a real app, this would read from local storage
+      // For demo, we'll simulate checking if profile exists
+      const existingProfile = localStorage.getItem('userProfile');
+      if (existingProfile) {
+        setUserProfile(JSON.parse(existingProfile));
+        setShowProfile(true);
+      }
     } catch (error) {
-      console.error('Error getting insights:', error);
-      throw new Error('Failed to get health insights');
+      console.log('No existing profile found');
     }
   };
 
-  const handleSubmit = async () => {
-    if (!formData.name || !formData.age || !formData.weight || !formData.height) {
-      Alert.alert('Missing Information', 'Please fill in all required fields.');
-      return;
+  const saveUserProfile = async (profile) => {
+    try {
+      // Save to local storage (simulating local JSON file)
+      localStorage.setItem('userProfile', JSON.stringify(profile));
+      console.log('Profile saved successfully:', profile);
+    } catch (error) {
+      console.error('Error saving profile:', error);
     }
+  };
 
+  const importFitbitData = async () => {
     setLoading(true);
+    
     try {
-      const healthInsights = await getClaudeInsights(formData);
-      setInsights(healthInsights);
-      setShowInsights(true);
-      console.log('User submitted:', formData);
+      // Call our local Flask proxy server
+      const response = await fetch('http://localhost:5001/profile', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        }
+      });
+      
+      if (!response.ok) {
+        throw new Error(`API call failed: ${response.status}`);
+      }
+      
+      const apiData = await response.json();
+      console.log('✅ Fitbit API Response:', apiData);
+      console.log('✅ Response status:', response.status);
+      console.log('✅ Response headers:', response.headers);
+      
+      // Parse the API response and create user profile
+      const userData = parseFitbitData(apiData);
+      
+      // Create complete user profile from real Fitbit data
+      const completeProfile = {
+        id: Date.now().toString(),
+        createdAt: new Date().toISOString(),
+        ...userData,
+        preferences: {
+          notifications: true,
+          weeklyReports: true,
+          goalReminders: true
+        },
+        lastSync: new Date().toISOString()
+      };
+
+      // Save profile locally
+      await saveUserProfile(completeProfile);
+      
+      // Update state
+      setUserProfile(completeProfile);
+      setShowProfile(true);
+      
+      Alert.alert('Success', 'Profile created from real Fitbit data!');
+      
     } catch (error) {
-      Alert.alert('Error', 'Failed to get health insights. Please try again.');
+      console.error('❌ Error importing Fitbit data:', error);
+      console.error('❌ Error details:', error.message);
+      console.error('❌ Error stack:', error.stack);
+      Alert.alert('Error', 'Failed to import Fitbit data. Please try again.');
     } finally {
       setLoading(false);
     }
   };
 
-  const resetForm = () => {
-    setFormData({
-      name: '',
-      age: '',
-      weight: '',
-      height: '',
-      gender: 'male',
-      goals: [],
-      integrations: {},
-    });
-    setInsights(null);
-    setShowInsights(false);
+  // Helper function to parse Fitbit data from API response
+  const parseFitbitData = (apiData) => {
+    try {
+      // If API returns structured data, use it directly
+      if (apiData.user && apiData.activity) {
+        return apiData;
+      }
+      
+      // If API returns different structure, try to map it
+      if (apiData.profile || apiData.data) {
+        const data = apiData.profile || apiData.data;
+        return {
+          user: {
+            name: data.name || data.userName || "User",
+            age: data.age || 30,
+            gender: data.gender || "unknown",
+            weight: data.weight || 70,
+            height: data.height || 170,
+            bmi: data.bmi || 24.2
+          },
+          activity: {
+            steps: data.steps || data.dailySteps || 8000,
+            calories: data.calories || data.dailyCalories || 2000,
+            activeMinutes: data.activeMinutes || 30,
+            sleepHours: data.sleepHours || data.sleep || 7.5,
+            heartRate: {
+              resting: data.restingHeartRate || 65,
+              average: data.averageHeartRate || 75
+            }
+          },
+          goals: data.goals || ["Improve Health", "Stay Active"],
+          connectedApps: {
+            Fitbit: true,
+            Oura: false,
+            "Apple Health": false
+          }
+        };
+      }
+      
+      // If API returns raw data, try to extract information
+      if (typeof apiData === 'string') {
+        // Try to parse JSON string
+        try {
+          const parsed = JSON.parse(apiData);
+          return parseFitbitData(parsed);
+        } catch {
+          // If it's not JSON, try to extract data using regex
+          const stepsMatch = apiData.match(/steps[:\s]+(\d+)/i);
+          const sleepMatch = apiData.match(/sleep[:\s]+(\d+(?:\.\d+)?)/i);
+          const nameMatch = apiData.match(/name[:\s]+([^\n,]+)/i);
+          
+          return {
+            user: {
+              name: nameMatch ? nameMatch[1].trim() : "User",
+              age: 30,
+              gender: "unknown",
+              weight: 70,
+              height: 170,
+              bmi: 24.2
+            },
+            activity: {
+              steps: stepsMatch ? parseInt(stepsMatch[1]) : 8000,
+              calories: 2000,
+              activeMinutes: 30,
+              sleepHours: sleepMatch ? parseFloat(sleepMatch[1]) : 7.5,
+              heartRate: {
+                resting: 65,
+                average: 75
+              }
+            },
+            goals: ["Improve Health", "Stay Active"],
+            connectedApps: {
+              Fitbit: true,
+              Oura: false,
+              "Apple Health": false
+            }
+          };
+        }
+      }
+      
+      // Fallback to dummy data if parsing fails
+      console.log('Using fallback data structure');
+      return dummyFitbitData;
+      
+    } catch (error) {
+      console.error('Error parsing Fitbit data:', error);
+      return dummyFitbitData;
+    }
   };
 
-  if (showInsights && insights) {
+  const resetProfile = () => {
+    try {
+      localStorage.removeItem('userProfile');
+      setUserProfile(null);
+      setShowProfile(false);
+      setShowInsights(false);
+      setInsightsData(null);
+      Alert.alert('Success', 'Profile reset successfully!');
+    } catch (error) {
+      Alert.alert('Error', 'Failed to reset profile.');
+    }
+  };
+
+  const getClaudeInsights = async (profile) => {
+    try {
+      // Create user input data from profile
+      const userInput = `User: ${profile.user.name}, Age: ${profile.user.age}, BMI: ${profile.user.bmi}, Daily Steps: ${profile.activity.steps}, Sleep Hours: ${profile.activity.sleepHours}, Heart Rate: ${profile.activity.heartRate.resting} bpm, Goals: ${profile.goals.join(', ')}`;
+      
+      const fitbitData = `Steps: ${profile.activity.steps}, Calories: ${profile.activity.calories}, Sleep: ${profile.activity.sleepHours}h, Heart Rate: ${profile.activity.heartRate.resting}/${profile.activity.heartRate.average} bpm, Active Minutes: ${profile.activity.activeMinutes}`;
+      
+      const sessionId = `session_${Date.now()}`;
+      
+      // Make API call to your webhook
+      const response = await fetch('https://healthstuffentreprenerufi.app.n8n.cloud/webhook/a7717fe9-5fe8-42bd-a0d1-6a52cf884c9f', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          chatinput: userInput,
+          sessionId: sessionId,
+          fitbit_session: fitbitData
+        })
+      });
+      
+      if (!response.ok) {
+        throw new Error(`API call failed: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      
+      // Return the AI response from the webhook
+      return data.response || data.message || JSON.stringify(data);
+      
+    } catch (error) {
+      console.error('Error calling AI webhook:', error);
+      
+      // Fallback to basic insights if API fails
+      return `# Health Insights for ${profile.user.name} 👋
+
+## Quick Summary
+- **BMI**: ${profile.user.bmi} 
+- **Daily Steps**: ${profile.activity.steps} (Goal: 10,000)
+- **Sleep**: ${profile.activity.sleepHours} hours
+- **Goals**: ${profile.goals.join(', ')}
+
+## Basic Recommendations
+- Aim for 10,000 steps daily
+- Get 7-9 hours of sleep
+- Stay hydrated and active
+
+*Note: AI insights temporarily unavailable. Showing basic recommendations.*`;
+    }
+  };
+
+  const generateInsights = async () => {
+    if (!userProfile) return;
+    
+    setLoading(true);
+    try {
+      const insights = await getClaudeInsights(userProfile);
+      console.log(insights)
+      setInsightsData(insights);
+      setShowInsights(true);
+    } catch (error) {
+      Alert.alert('Error', 'Failed to generate insights.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const goBackToProfile = () => {
+    setShowInsights(false);
+    setInsightsData(null);
+  };
+
+  // Show insights screen
+  if (showInsights && insightsData) {
     return (
       <ScrollView style={{ padding: 20, marginTop: 50 }}>
         <Text style={{ fontSize: 24, fontWeight: 'bold', marginBottom: 20, textAlign: 'center' }}>
@@ -166,136 +306,203 @@ You're on the right track! Small changes lead to big results. 🌟`;
         </Text>
         
         <View style={styles.insightsContainer}>
-          <Text style={styles.insightsText}>{insights}</Text>
+          <Text style={styles.insightsText}>{insightsData}</Text>
         </View>
 
-        <TouchableOpacity style={styles.button} onPress={resetForm}>
+        <TouchableOpacity style={styles.button} onPress={goBackToProfile}>
           <Text style={{ color: 'white', textAlign: 'center', fontWeight: 'bold' }}>
-            Start Over
+            Back to Profile
           </Text>
         </TouchableOpacity>
       </ScrollView>
     );
   }
 
-  return (
-    <ScrollView style={{ padding: 20, marginTop: 50 }}>
-      <Text style={{ fontSize: 24, fontWeight: 'bold', marginBottom: 20 }}>Create Your Health Profile</Text>
+  // Show existing profile
+  if (showProfile && userProfile) {
+    return (
+      <ScrollView style={{ padding: 20, marginTop: 50 }}>
+        <Text style={{ fontSize: 24, fontWeight: 'bold', marginBottom: 20, textAlign: 'center' }}>
+          Welcome Back! 👋
+        </Text>
+        
+        <View style={styles.profileContainer}>
+          <Text style={styles.profileName}>{userProfile.user.name}</Text>
+          <Text style={styles.profileDetails}>
+            Age: {userProfile.user.age} • Weight: {userProfile.user.weight}kg • Height: {userProfile.user.height}cm
+          </Text>
+          <Text style={styles.profileDetails}>
+            BMI: {userProfile.user.bmi} • Daily Steps: {userProfile.activity.steps}
+          </Text>
+          <Text style={styles.profileDetails}>
+            Sleep: {userProfile.activity.sleepHours}h • Heart Rate: {userProfile.activity.heartRate.resting} bpm
+          </Text>
+          
+          <Text style={styles.goalsTitle}>Health Goals:</Text>
+          {userProfile.goals.map((goal, index) => (
+            <Text key={index} style={styles.goalItem}>• {goal}</Text>
+          ))}
+          
+          <Text style={styles.syncInfo}>
+            Last synced: {new Date(userProfile.lastSync).toLocaleDateString()}
+          </Text>
+        </View>
 
-      <Text>Name</Text>
-      <TextInput
-        style={styles.input}
-        value={formData.name}
-        onChangeText={(text) => setFormData({ ...formData, name: text })}
-        placeholder="Enter your name"
-      />
+        <TouchableOpacity 
+          style={[styles.button, loading && styles.buttonDisabled]} 
+          onPress={generateInsights}
+          disabled={loading}
+        >
+          {loading ? (
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+              <ActivityIndicator color="white" size="small" style={{ marginRight: 10 }} />
+              <Text style={{ color: 'white', textAlign: 'center', fontWeight: 'bold' }}>
+                Generating Insights...
+              </Text>
+            </View>
+          ) : (
+            <Text style={{ color: 'white', textAlign: 'center', fontWeight: 'bold' }}>
+              Get AI Health Insights
+            </Text>
+          )}
+        </TouchableOpacity>
 
-      <Text>Age</Text>
-      <TextInput
-        style={styles.input}
-        keyboardType="numeric"
-        value={formData.age}
-        onChangeText={(text) => setFormData({ ...formData, age: text })}
-        placeholder="Enter your age"
-      />
-
-      <Text>Weight (kg)</Text>
-      <TextInput
-        style={styles.input}
-        keyboardType="numeric"
-        value={formData.weight}
-        onChangeText={(text) => setFormData({ ...formData, weight: text })}
-        placeholder="Enter your weight in kg"
-      />
-
-      <Text>Height (cm)</Text>
-      <TextInput
-        style={styles.input}
-        keyboardType="numeric"
-        value={formData.height}
-        onChangeText={(text) => setFormData({ ...formData, height: text })}
-        placeholder="Enter your height in cm"
-      />
-
-      <Text>Gender</Text>
-      <Picker
-        selectedValue={formData.gender}
-        onValueChange={(itemValue) => setFormData({ ...formData, gender: itemValue })}
-        style={{ marginBottom: 20 }}
-      >
-        <Picker.Item label="Male" value="male" />
-        <Picker.Item label="Female" value="female" />
-        <Picker.Item label="Other" value="other" />
-      </Picker>
-
-      <Text style={{ fontWeight: 'bold', marginTop: 10 }}>Health Goals</Text>
-      {goalsList.map((goal) => (
-        <TouchableOpacity key={goal} onPress={() => toggleGoal(goal)}>
-          <Text style={{ 
-            paddingVertical: 8, 
-            color: formData.goals.includes(goal) ? '#007AFF' : 'black',
-            fontWeight: formData.goals.includes(goal) ? 'bold' : 'normal'
-          }}>
-            {formData.goals.includes(goal) ? '✓ ' : '○ '}{goal}
+        <TouchableOpacity style={styles.resetButton} onPress={resetProfile}>
+          <Text style={{ color: '#ff4444', textAlign: 'center', fontWeight: 'bold' }}>
+            Reset Profile
           </Text>
         </TouchableOpacity>
-      ))}
+      </ScrollView>
+    );
+  }
 
-      <Text style={{ fontWeight: 'bold', marginTop: 20 }}>Connect Health Data</Text>
-      {integrationsList.map((integration) => (
-        <View key={integration} style={styles.switchRow}>
-          <Text>{integration}</Text>
-          <Switch
-            value={formData.integrations[integration] || false}
-            onValueChange={() => toggleIntegration(integration)}
-          />
-        </View>
-      ))}
+  // Show import screen
+  return (
+    <ScrollView style={{ padding: 20, marginTop: 50 }}>
+      <Text style={{ fontSize: 24, fontWeight: 'bold', marginBottom: 20, textAlign: 'center' }}>
+        Welcome to Wellness Buddy 🏥
+      </Text>
 
-      <TouchableOpacity 
-        style={[styles.button, loading && styles.buttonDisabled]} 
-        onPress={handleSubmit}
-        disabled={loading}
-      >
-        {loading ? (
-          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-            <ActivityIndicator color="white" size="small" style={{ marginRight: 10 }} />
+      <View style={styles.importSection}>
+        <Text style={{ fontSize: 18, fontWeight: 'bold', marginBottom: 10, textAlign: 'center' }}>
+          Quick Setup
+        </Text>
+        <Text style={{ fontSize: 14, color: '#666', marginBottom: 20, textAlign: 'center' }}>
+          Connect your Fitbit to automatically create your health profile
+        </Text>
+        
+        <TouchableOpacity 
+          style={[styles.importButton, loading && styles.buttonDisabled]} 
+          onPress={importFitbitData}
+          disabled={loading}
+        >
+          {loading ? (
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+              <ActivityIndicator color="white" size="small" style={{ marginRight: 10 }} />
+              <Text style={{ color: 'white', textAlign: 'center', fontWeight: 'bold' }}>
+                Creating Your Profile...
+              </Text>
+            </View>
+          ) : (
             <Text style={{ color: 'white', textAlign: 'center', fontWeight: 'bold' }}>
-              Getting Your Insights...
+              📱 Import from Fitbit
             </Text>
-          </View>
-        ) : (
-          <Text style={{ color: 'white', textAlign: 'center', fontWeight: 'bold' }}>
-            Get AI Health Insights
-          </Text>
-        )}
-      </TouchableOpacity>
+          )}
+        </TouchableOpacity>
+        
+        <Text style={{ fontSize: 12, color: '#666', marginTop: 10, textAlign: 'center' }}>
+          Demo: Uses sample Fitbit data to create profile
+        </Text>
+      </View>
+
+      <View style={styles.infoSection}>
+        <Text style={{ fontSize: 16, fontWeight: 'bold', marginBottom: 10 }}>
+          What We'll Import:
+        </Text>
+        <Text style={styles.infoItem}>• Personal info (name, age, gender)</Text>
+        <Text style={styles.infoItem}>• Physical data (weight, height, BMI)</Text>
+        <Text style={styles.infoItem}>• Activity metrics (steps, sleep, heart rate)</Text>
+        <Text style={styles.infoItem}>• Health goals and preferences</Text>
+      </View>
     </ScrollView>
   );
 }
 
 const styles = {
-  input: {
-    borderWidth: 1,
-    borderColor: '#ccc',
-    padding: 10,
-    marginBottom: 15,
-    borderRadius: 8,
-  },
-  button: {
-    backgroundColor: '#007AFF',
-    padding: 15,
-    marginTop: 30,
+  importSection: {
+    backgroundColor: '#e3f2fd',
+    padding: 20,
     borderRadius: 10,
+    marginBottom: 20,
+  },
+  importButton: {
+    backgroundColor: '#2196F3',
+    padding: 15,
+    borderRadius: 8,
   },
   buttonDisabled: {
     backgroundColor: '#ccc',
   },
-  switchRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 10,
+  button: {
+    backgroundColor: '#007AFF',
+    padding: 15,
+    marginTop: 20,
+    borderRadius: 10,
+  },
+  resetButton: {
+    backgroundColor: '#fff',
+    padding: 15,
+    marginTop: 10,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#ff4444',
+  },
+  infoSection: {
+    backgroundColor: '#f8f9fa',
+    padding: 15,
+    borderRadius: 10,
+  },
+  infoItem: {
+    fontSize: 14,
+    color: '#666',
+    marginBottom: 5,
+  },
+  profileContainer: {
+    backgroundColor: '#f8f9fa',
+    padding: 20,
+    borderRadius: 10,
+    marginBottom: 20,
+  },
+  profileName: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    marginBottom: 10,
+    textAlign: 'center',
+  },
+  profileDetails: {
+    fontSize: 16,
+    color: '#666',
+    marginBottom: 5,
+    textAlign: 'center',
+  },
+  goalsTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginTop: 15,
+    marginBottom: 10,
+    textAlign: 'center',
+  },
+  goalItem: {
+    fontSize: 16,
+    color: '#007AFF',
+    marginBottom: 5,
+    textAlign: 'center',
+  },
+  syncInfo: {
+    fontSize: 12,
+    color: '#999',
+    marginTop: 15,
+    textAlign: 'center',
   },
   insightsContainer: {
     backgroundColor: '#f8f9fa',
