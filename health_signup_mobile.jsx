@@ -40,6 +40,7 @@ export default function SignupScreen() {
   const [chatInput, setChatInput] = useState('');
   const [chatLoading, setChatLoading] = useState(false);
   const [currentCardContext, setCurrentCardContext] = useState(null);
+  const [activeChatCard, setActiveChatCard] = useState(null);
 
   // Load existing profile on app start
   useEffect(() => {
@@ -470,11 +471,21 @@ Make insights personalized, actionable, and card-friendly. Focus on the user's s
     setShowChat(false);
     setChatMessages([]);
     setCurrentCardContext(null);
+    setActiveChatCard(null);
+  };
+
+  const goBackToCards = () => {
+    setShowChat(false);
+    setChatMessages([]);
+    setCurrentCardContext(null);
+    // Keep showInsights and insightsData so we return to the cards view
+    // Keep activeChatCard to show which card was active
   };
 
   const startChatSession = (cardContext = null) => {
     setShowChat(true);
     setCurrentCardContext(cardContext);
+    setActiveChatCard(cardContext); // Track which card is active
     
     let initialMessage;
     
@@ -629,9 +640,16 @@ Make insights personalized, actionable, and card-friendly. Focus on the user's s
               )}
             </Text>
           </View>
-          <TouchableOpacity onPress={goBackToProfile} style={styles.closeButton}>
-            <Text style={styles.closeButtonText}>✕</Text>
-          </TouchableOpacity>
+          <View style={styles.chatHeaderButtons}>
+            {currentCardContext && (
+              <TouchableOpacity onPress={goBackToCards} style={styles.backToCardsButton}>
+                <Text style={styles.backToCardsButtonText}>← Cards</Text>
+              </TouchableOpacity>
+            )}
+            <TouchableOpacity onPress={goBackToProfile} style={styles.closeButton}>
+              <Text style={styles.closeButtonText}>✕</Text>
+            </TouchableOpacity>
+          </View>
         </View>
 
         <ScrollView 
@@ -704,6 +722,11 @@ Make insights personalized, actionable, and card-friendly. Focus on the user's s
             <View style={styles.cardHeader}>
               <Text style={styles.cardIcon}>{card.icon}</Text>
               <Text style={styles.cardTitle}>{card.title}</Text>
+              {activeChatCard && activeChatCard.title === card.title && (
+                <View style={styles.activeChatIndicator}>
+                  <Text style={styles.activeChatText}>💬 Active</Text>
+                </View>
+              )}
             </View>
             
             <Text style={styles.cardInsight}>{card.insight}</Text>
@@ -717,7 +740,9 @@ Make insights personalized, actionable, and card-friendly. Focus on the user's s
               style={[styles.cardChatButton, { backgroundColor: getCardColor(card.color) }]} 
               onPress={() => startChatSession(card)}
             >
-              <Text style={styles.cardChatButtonText}>💬 Chat about this</Text>
+              <Text style={styles.cardChatButtonText}>
+                {activeChatCard && activeChatCard.title === card.title ? '💬 Continue Chat' : '💬 Chat about this'}
+              </Text>
             </TouchableOpacity>
           </View>
         ))}
@@ -1008,6 +1033,22 @@ const styles = {
           fontWeight: 'normal',
           color: '#6B7280',
         },
+        chatHeaderButtons: {
+          flexDirection: 'row',
+          alignItems: 'center',
+          gap: 10,
+        },
+        backToCardsButton: {
+          backgroundColor: '#3B82F6',
+          paddingHorizontal: 12,
+          paddingVertical: 6,
+          borderRadius: 6,
+        },
+        backToCardsButtonText: {
+          color: 'white',
+          fontSize: 14,
+          fontWeight: '600',
+        },
         closeButton: {
           padding: 8,
         },
@@ -1111,6 +1152,18 @@ const styles = {
         cardChatButtonText: {
           color: 'white',
           fontSize: 14,
+          fontWeight: '600',
+        },
+        activeChatIndicator: {
+          backgroundColor: '#10B981',
+          paddingHorizontal: 8,
+          paddingVertical: 4,
+          borderRadius: 12,
+          marginLeft: 'auto',
+        },
+        activeChatText: {
+          color: 'white',
+          fontSize: 12,
           fontWeight: '600',
         },
 };

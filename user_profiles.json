@@ -389,11 +389,128 @@
       "lastSync": "2025-08-02T23:21:27.082Z",
       "last_updated": "2025-08-02T16:21:27.092104",
       "user_id": "1754176887082"
+    },
+    "1754177669320": {
+      "id": "1754177669320",
+      "createdAt": "2025-08-02T23:34:29.320Z",
+      "user": {
+        "name": "Ashutosh Kumawat",
+        "age": 28,
+        "gender": "MALE",
+        "weight": 100,
+        "height": 190.5,
+        "bmi": 27.6
+      },
+      "activity": {
+        "steps": 2099,
+        "calories": 2000,
+        "activeMinutes": 30,
+        "sleepHours": 7.5,
+        "heartRate": {
+          "resting": 65,
+          "average": 75
+        }
+      },
+      "goals": [
+        "Improve Health",
+        "Stay Active"
+      ],
+      "connectedApps": {
+        "Fitbit": true,
+        "Oura": false,
+        "Apple Health": false
+      },
+      "preferences": {
+        "notifications": true,
+        "weeklyReports": true,
+        "goalReminders": true
+      },
+      "lastSync": "2025-08-02T23:34:29.320Z",
+      "last_updated": "2025-08-02T16:34:29.327463",
+      "user_id": "1754177669320"
+    },
+    "1754177968812": {
+      "id": "1754177968812",
+      "createdAt": "2025-08-02T23:39:28.812Z",
+      "user": {
+        "name": "Ashutosh Kumawat",
+        "age": 28,
+        "gender": "MALE",
+        "weight": 100,
+        "height": 190.5,
+        "bmi": 27.6
+      },
+      "activity": {
+        "steps": 2099,
+        "calories": 2000,
+        "activeMinutes": 30,
+        "sleepHours": 7.5,
+        "heartRate": {
+          "resting": 65,
+          "average": 75
+        }
+      },
+      "goals": [
+        "Improve Health",
+        "Stay Active"
+      ],
+      "connectedApps": {
+        "Fitbit": true,
+        "Oura": false,
+        "Apple Health": false
+      },
+      "preferences": {
+        "notifications": true,
+        "weeklyReports": true,
+        "goalReminders": true
+      },
+      "lastSync": "2025-08-02T23:39:28.812Z",
+      "last_updated": "2025-08-02T16:39:28.823254",
+      "user_id": "1754177968812"
+    },
+    "1754178102470": {
+      "id": "1754178102470",
+      "createdAt": "2025-08-02T23:41:42.470Z",
+      "user": {
+        "name": "Ashutosh Kumawat",
+        "age": 28,
+        "gender": "MALE",
+        "weight": 100,
+        "height": 190.5,
+        "bmi": 27.6
+      },
+      "activity": {
+        "steps": 2099,
+        "calories": 2000,
+        "activeMinutes": 30,
+        "sleepHours": 7.5,
+        "heartRate": {
+          "resting": 65,
+          "average": 75
+        }
+      },
+      "goals": [
+        "Improve Health",
+        "Stay Active"
+      ],
+      "connectedApps": {
+        "Fitbit": true,
+        "Oura": false,
+        "Apple Health": false
+      },
+      "preferences": {
+        "notifications": true,
+        "weeklyReports": true,
+        "goalReminders": true
+      },
+      "lastSync": "2025-08-02T23:41:42.470Z",
+      "last_updated": "2025-08-02T16:41:42.480756",
+      "user_id": "1754178102470"
     }
   },
   "metadata": {
     "created": "2025-08-02T16:01:06.518230",
-    "total_users": 10,
-    "last_updated": "2025-08-02T16:21:27.092114"
+    "total_users": 13,
+    "last_updated": "2025-08-02T16:41:42.480761"
   }
 }
