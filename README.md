@@ -25,6 +25,7 @@ A React Native mobile application that collects user health information and prov
 
 - Node.js (v16 or higher)
 - npm or yarn
+- Python 3.7+ (for Flask proxy server)
 - Expo CLI
 - iOS Simulator (optional) or Android Emulator (optional)
 - Expo Go app on your phone
@@ -40,17 +41,45 @@ A React Native mobile application that collects user health information and prov
 2. **Install dependencies**
    ```bash
    npm install
+   pip3 install flask flask-cors requests
    ```
 
-3. **Start the development server**
+### Quick Start (Recommended)
+
+**Start everything with one command:**
+```bash
+./start_dev.sh
+```
+
+This will:
+- ✅ Check and install dependencies
+- ✅ Start Flask proxy server (localhost:5001)
+- ✅ Start Expo development server (localhost:8081)
+- ✅ Open your browser automatically
+
+**Stop everything:**
+```bash
+./stop_dev.sh
+```
+
+### Manual Start
+
+If you prefer to start servers manually:
+
+1. **Start Flask proxy server**
    ```bash
-   npx expo start
+   python3 flask_proxy_server.py
    ```
 
-4. **Run on your device**
-   - Install Expo Go on your phone
-   - Scan the QR code displayed in the terminal
-   - Or press `i` for iOS Simulator or `a` for Android Emulator
+2. **Start Expo development server**
+   ```bash
+   npx expo start --web
+   ```
+
+3. **Access the app**
+   - Web: http://localhost:8081
+   - Flask API: http://localhost:5001
+   - Test API: http://localhost:5001/test-remote
 
 ## Project Structure
 
