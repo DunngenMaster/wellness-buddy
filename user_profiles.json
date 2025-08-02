@@ -1,0 +1,360 @@
+{
+  "users": {
+    "1754175770407": {
+      "id": "1754175770407",
+      "createdAt": "2025-08-02T23:02:50.407Z",
+      "user": {
+        "name": "John Doe",
+        "age": 32,
+        "gender": "male",
+        "weight": 75.5,
+        "height": 175,
+        "bmi": 24.7
+      },
+      "activity": {
+        "steps": 8500,
+        "calories": 2100,
+        "activeMinutes": 45,
+        "sleepHours": 7.2,
+        "heartRate": {
+          "resting": 62,
+          "average": 72
+        }
+      },
+      "goals": [
+        "Improve Sleep",
+        "Boost Energy"
+      ],
+      "connectedApps": {
+        "Fitbit": true,
+        "Oura": false,
+        "Apple Health": false
+      },
+      "preferences": {
+        "notifications": true,
+        "weeklyReports": true,
+        "goalReminders": true
+      },
+      "lastSync": "2025-08-02T23:02:50.407Z",
+      "last_updated": "2025-08-02T16:02:50.414570",
+      "user_id": "1754175770407"
+    },
+    "1754176115329": {
+      "id": "1754176115329",
+      "createdAt": "2025-08-02T23:08:35.329Z",
+      "user": {
+        "name": "John Doe",
+        "age": 32,
+        "gender": "male",
+        "weight": 75.5,
+        "height": 175,
+        "bmi": 24.7
+      },
+      "activity": {
+        "steps": 8500,
+        "calories": 2100,
+        "activeMinutes": 45,
+        "sleepHours": 7.2,
+        "heartRate": {
+          "resting": 62,
+          "average": 72
+        }
+      },
+      "goals": [
+        "Improve Sleep",
+        "Boost Energy"
+      ],
+      "connectedApps": {
+        "Fitbit": true,
+        "Oura": false,
+        "Apple Health": false
+      },
+      "preferences": {
+        "notifications": true,
+        "weeklyReports": true,
+        "goalReminders": true
+      },
+      "lastSync": "2025-08-02T23:08:35.329Z",
+      "last_updated": "2025-08-02T16:08:35.337981",
+      "user_id": "1754176115329"
+    },
+    "1754176148874": {
+      "id": "1754176148874",
+      "createdAt": "2025-08-02T23:09:08.874Z",
+      "user": {
+        "name": "John Doe",
+        "age": 32,
+        "gender": "male",
+        "weight": 75.5,
+        "height": 175,
+        "bmi": 24.7
+      },
+      "activity": {
+        "steps": 8500,
+        "calories": 2100,
+        "activeMinutes": 45,
+        "sleepHours": 7.2,
+        "heartRate": {
+          "resting": 62,
+          "average": 72
+        }
+      },
+      "goals": [
+        "Improve Sleep",
+        "Boost Energy"
+      ],
+      "connectedApps": {
+        "Fitbit": true,
+        "Oura": false,
+        "Apple Health": false
+      },
+      "preferences": {
+        "notifications": true,
+        "weeklyReports": true,
+        "goalReminders": true
+      },
+      "lastSync": "2025-08-02T23:09:08.874Z",
+      "last_updated": "2025-08-02T16:09:08.886034",
+      "user_id": "1754176148874"
+    },
+    "1754176385377": {
+      "id": "1754176385377",
+      "createdAt": "2025-08-02T23:13:05.377Z",
+      "user": {
+        "name": "John Doe",
+        "age": 32,
+        "gender": "male",
+        "weight": 75.5,
+        "height": 175,
+        "bmi": 24.7
+      },
+      "activity": {
+        "steps": 8500,
+        "calories": 2100,
+        "activeMinutes": 45,
+        "sleepHours": 7.2,
+        "heartRate": {
+          "resting": 62,
+          "average": 72
+        }
+      },
+      "goals": [
+        "Improve Sleep",
+        "Boost Energy"
+      ],
+      "connectedApps": {
+        "Fitbit": true,
+        "Oura": false,
+        "Apple Health": false
+      },
+      "preferences": {
+        "notifications": true,
+        "weeklyReports": true,
+        "goalReminders": true
+      },
+      "lastSync": "2025-08-02T23:13:05.377Z",
+      "last_updated": "2025-08-02T16:13:05.392011",
+      "user_id": "1754176385377"
+    },
+    "1754176468640": {
+      "id": "1754176468640",
+      "createdAt": "2025-08-02T23:14:28.640Z",
+      "user": {
+        "name": "John Doe",
+        "age": 32,
+        "gender": "male",
+        "weight": 75.5,
+        "height": 175,
+        "bmi": 24.7
+      },
+      "activity": {
+        "steps": 8500,
+        "calories": 2100,
+        "activeMinutes": 45,
+        "sleepHours": 7.2,
+        "heartRate": {
+          "resting": 62,
+          "average": 72
+        }
+      },
+      "goals": [
+        "Improve Sleep",
+        "Boost Energy"
+      ],
+      "connectedApps": {
+        "Fitbit": true,
+        "Oura": false,
+        "Apple Health": false
+      },
+      "preferences": {
+        "notifications": true,
+        "weeklyReports": true,
+        "goalReminders": true
+      },
+      "lastSync": "2025-08-02T23:14:28.640Z",
+      "last_updated": "2025-08-02T16:14:28.652126",
+      "user_id": "1754176468640"
+    },
+    "1754176506520": {
+      "id": "1754176506520",
+      "createdAt": "2025-08-02T23:15:06.520Z",
+      "user": {
+        "name": "Ashutosh Kumawat",
+        "age": 28,
+        "gender": "MALE",
+        "weight": 100,
+        "height": 190.5,
+        "bmi": 27.6
+      },
+      "activity": {
+        "steps": 2099,
+        "calories": 2000,
+        "activeMinutes": 30,
+        "sleepHours": 7.5,
+        "heartRate": {
+          "resting": 65,
+          "average": 75
+        }
+      },
+      "goals": [
+        "Improve Health",
+        "Stay Active"
+      ],
+      "connectedApps": {
+        "Fitbit": true,
+        "Oura": false,
+        "Apple Health": false
+      },
+      "preferences": {
+        "notifications": true,
+        "weeklyReports": true,
+        "goalReminders": true
+      },
+      "lastSync": "2025-08-02T23:15:06.520Z",
+      "last_updated": "2025-08-02T16:15:06.531039",
+      "user_id": "1754176506520"
+    },
+    "1754176655758": {
+      "id": "1754176655758",
+      "createdAt": "2025-08-02T23:17:35.758Z",
+      "user": {
+        "name": "Ashutosh Kumawat",
+        "age": 28,
+        "gender": "MALE",
+        "weight": 100,
+        "height": 190.5,
+        "bmi": 27.6
+      },
+      "activity": {
+        "steps": 2099,
+        "calories": 2000,
+        "activeMinutes": 30,
+        "sleepHours": 7.5,
+        "heartRate": {
+          "resting": 65,
+          "average": 75
+        }
+      },
+      "goals": [
+        "Improve Health",
+        "Stay Active"
+      ],
+      "connectedApps": {
+        "Fitbit": true,
+        "Oura": false,
+        "Apple Health": false
+      },
+      "preferences": {
+        "notifications": true,
+        "weeklyReports": true,
+        "goalReminders": true
+      },
+      "lastSync": "2025-08-02T23:17:35.758Z",
+      "last_updated": "2025-08-02T16:17:35.769644",
+      "user_id": "1754176655758"
+    },
+    "1754176672435": {
+      "id": "1754176672435",
+      "createdAt": "2025-08-02T23:17:52.435Z",
+      "user": {
+        "name": "Ashutosh Kumawat",
+        "age": 28,
+        "gender": "MALE",
+        "weight": 100,
+        "height": 190.5,
+        "bmi": 27.6
+      },
+      "activity": {
+        "steps": 2099,
+        "calories": 2000,
+        "activeMinutes": 30,
+        "sleepHours": 7.5,
+        "heartRate": {
+          "resting": 65,
+          "average": 75
+        }
+      },
+      "goals": [
+        "Improve Health",
+        "Stay Active"
+      ],
+      "connectedApps": {
+        "Fitbit": true,
+        "Oura": false,
+        "Apple Health": false
+      },
+      "preferences": {
+        "notifications": true,
+        "weeklyReports": true,
+        "goalReminders": true
+      },
+      "lastSync": "2025-08-02T23:17:52.435Z",
+      "last_updated": "2025-08-02T16:17:52.448693",
+      "user_id": "1754176672435"
+    },
+    "1754176768195": {
+      "id": "1754176768195",
+      "createdAt": "2025-08-02T23:19:28.195Z",
+      "user": {
+        "name": "Ashutosh Kumawat",
+        "age": 28,
+        "gender": "MALE",
+        "weight": 100,
+        "height": 190.5,
+        "bmi": 27.6
+      },
+      "activity": {
+        "steps": 2099,
+        "calories": 2000,
+        "activeMinutes": 30,
+        "sleepHours": 7.5,
+        "heartRate": {
+          "resting": 65,
+          "average": 75
+        }
+      },
+      "goals": [
+        "Improve Health",
+        "Stay Active"
+      ],
+      "connectedApps": {
+        "Fitbit": true,
+        "Oura": false,
+        "Apple Health": false
+      },
+      "preferences": {
+        "notifications": true,
+        "weeklyReports": true,
+        "goalReminders": true
+      },
+      "lastSync": "2025-08-02T23:19:28.195Z",
+      "last_updated": "2025-08-02T16:19:28.208112",
+      "user_id": "1754176768195"
+    }
+  },
+  "metadata": {
+    "created": "2025-08-02T16:01:06.518230",
+    "total_users": 9,
+    "last_updated": "2025-08-02T16:19:28.208118"
+  }
+}

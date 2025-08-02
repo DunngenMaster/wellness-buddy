@@ -1,6 +1,8 @@
 from flask import Flask, jsonify, request
 from flask_cors import CORS
 import requests
+from datetime import datetime
+from user_data_manager import user_manager
 
 app = Flask(__name__)
 CORS(app)  # Enable CORS for all routes
@@ -63,8 +65,71 @@ def test_remote_api():
             "success": False
         })
 
+# User Data Management Endpoints
+@app.route('/users', methods=['GET'])
+def get_all_users():
+    """Get all stored user profiles"""
+    try:
+        users = user_manager.get_all_users()
+        return jsonify({
+            "users": users,
+            "success": True
+        })
+    except Exception as e:
+        return jsonify({"error": str(e), "success": False}), 500
+
+@app.route('/users/<user_id>', methods=['GET'])
+def get_user(user_id):
+    """Get a specific user profile"""
+    try:
+        user = user_manager.get_user_profile(user_id)
+        if user:
+            return jsonify({"user": user, "success": True})
+        else:
+            return jsonify({"error": "User not found", "success": False}), 404
+    except Exception as e:
+        return jsonify({"error": str(e), "success": False}), 500
+
+@app.route('/users', methods=['POST'])
+def save_user():
+    """Save or update a user profile"""
+    try:
+        data = request.get_json()
+        user_id = data.get('user_id', f"user_{int(datetime.now().timestamp())}")
+        profile_data = data.get('profile', data)
+        
+        success = user_manager.save_user_profile(user_id, profile_data)
+        if success:
+            return jsonify({
+                "user_id": user_id,
+                "message": "User profile saved successfully",
+                "success": True
+            })
+        else:
+            return jsonify({"error": "Failed to save user profile", "success": False}), 500
+    except Exception as e:
+        return jsonify({"error": str(e), "success": False}), 500
+
+@app.route('/users/<user_id>', methods=['DELETE'])
+def delete_user(user_id):
+    """Delete a user profile"""
+    try:
+        success = user_manager.delete_user_profile(user_id)
+        if success:
+            return jsonify({
+                "message": "User profile deleted successfully",
+                "success": True
+            })
+        else:
+            return jsonify({"error": "User not found", "success": False}), 404
+    except Exception as e:
+        return jsonify({"error": str(e), "success": False}), 500
+
+
+
 if __name__ == '__main__':
     print("🚀 Starting Flask proxy server on http://localhost:5001")
     print("📡 Will proxy requests to:", REMOTE_API_URL)
     print("🌐 CORS enabled for React app")
+    print("💾 User data management enabled")
     app.run(host='0.0.0.0', port=5001, debug=True) 

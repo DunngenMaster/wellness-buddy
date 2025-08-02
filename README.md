@@ -55,7 +55,6 @@ This will:
 - ✅ Check and install dependencies
 - ✅ Start Flask proxy server (localhost:5001)
 - ✅ Start Expo development server (localhost:8081)
-- ✅ Open your browser automatically
 
 **Stop everything:**
 ```bash

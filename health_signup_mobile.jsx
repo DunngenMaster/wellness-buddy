@@ -105,6 +105,29 @@ export default function SignupScreen() {
       // Save profile locally
       await saveUserProfile(completeProfile);
       
+      // Save profile to server for demo persistence
+      try {
+        const serverResponse = await fetch('http://localhost:5001/users', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            user_id: completeProfile.id,
+            profile: completeProfile
+          })
+        });
+        
+        if (serverResponse.ok) {
+          const result = await serverResponse.json();
+          console.log('✅ Profile saved to server:', result);
+        } else {
+          console.log('⚠️ Failed to save to server, but local storage works');
+        }
+      } catch (error) {
+        console.log('⚠️ Server save failed, but local storage works:', error);
+      }
+      
       // Update state
       setUserProfile(completeProfile);
       setShowProfile(true);
@@ -124,9 +147,62 @@ export default function SignupScreen() {
   // Helper function to parse Fitbit data from API response
   const parseFitbitData = (apiData) => {
     try {
+      console.log('Parsing Fitbit data:', apiData);
+      
       // If API returns structured data, use it directly
       if (apiData.user && apiData.activity) {
         return apiData;
+      }
+      
+      // Handle real Fitbit API response structure
+      if (apiData.fullName || apiData.displayName || apiData.firstName) {
+        console.log('Detected real Fitbit API response');
+        
+        // Calculate BMI from weight and height
+        const weight = apiData.weight || 70;
+        const height = (apiData.height || 170) / 100; // Convert cm to meters
+        const bmi = height > 0 ? (weight / (height * height)).toFixed(1) : 24.2;
+        
+        // Get name from various possible fields
+        const name = apiData.fullName || apiData.displayName || 
+                    `${apiData.firstName || ''} ${apiData.lastName || ''}`.trim() || "User";
+        
+        // Get steps from various possible fields
+        const steps = apiData.averageDailySteps || apiData.steps || apiData.dailySteps || 8000;
+        
+        // Estimate sleep hours (Fitbit API might not provide this directly)
+        const sleepHours = apiData.sleepHours || apiData.sleep || 7.5;
+        
+        // Estimate heart rate (Fitbit API might not provide this directly)
+        const restingHeartRate = apiData.restingHeartRate || 65;
+        const averageHeartRate = apiData.averageHeartRate || 75;
+        
+        return {
+          user: {
+            name: name,
+            age: apiData.age || 30,
+            gender: apiData.gender || "unknown",
+            weight: weight,
+            height: apiData.height || 170,
+            bmi: parseFloat(bmi)
+          },
+          activity: {
+            steps: steps,
+            calories: apiData.calories || 2000,
+            activeMinutes: apiData.activeMinutes || 30,
+            sleepHours: sleepHours,
+            heartRate: {
+              resting: restingHeartRate,
+              average: averageHeartRate
+            }
+          },
+          goals: apiData.goals || ["Improve Health", "Stay Active"],
+          connectedApps: {
+            Fitbit: true,
+            Oura: false,
+            "Apple Health": false
+          }
+        };
       }
       
       // If API returns different structure, try to map it
@@ -202,7 +278,7 @@ export default function SignupScreen() {
       }
       
       // Fallback to dummy data if parsing fails
-      console.log('Using fallback data structure');
+      console.log('Using fallback data structure - no recognizable format found');
       return dummyFitbitData;
       
     } catch (error) {
@@ -226,10 +302,49 @@ export default function SignupScreen() {
 
   const getClaudeInsights = async (profile) => {
     try {
-      // Create user input data from profile
-      const userInput = `User: ${profile.user.name}, Age: ${profile.user.age}, BMI: ${profile.user.bmi}, Daily Steps: ${profile.activity.steps}, Sleep Hours: ${profile.activity.sleepHours}, Heart Rate: ${profile.activity.heartRate.resting} bpm, Goals: ${profile.goals.join(', ')}`;
-      
-      const fitbitData = `Steps: ${profile.activity.steps}, Calories: ${profile.activity.calories}, Sleep: ${profile.activity.sleepHours}h, Heart Rate: ${profile.activity.heartRate.resting}/${profile.activity.heartRate.average} bpm, Active Minutes: ${profile.activity.activeMinutes}`;
+      // Create structured prompt for card-friendly insights
+      const structuredPrompt = `Generate exactly 3 health insight cards for this user profile. 
+
+USER DATA:
+- Name: ${profile.user.name}
+- Age: ${profile.user.age}
+- BMI: ${profile.user.bmi}
+- Daily Steps: ${profile.activity.steps}
+- Sleep Hours: ${profile.activity.sleepHours}
+- Heart Rate: ${profile.activity.heartRate.resting} bpm
+- Goals: ${profile.goals.join(', ')}
+
+REQUIRED FORMAT - Return ONLY valid JSON with exactly 3 cards:
+{
+  "cards": [
+    {
+      "title": "Card Title (max 30 chars)",
+      "icon": "emoji icon",
+      "category": "fitness|sleep|nutrition|general",
+      "insight": "Main insight (max 100 chars)",
+      "action": "Specific action to take (max 80 chars)",
+      "color": "blue|green|orange|purple|red"
+    },
+    {
+      "title": "Card Title (max 30 chars)", 
+      "icon": "emoji icon",
+      "category": "fitness|sleep|nutrition|general",
+      "insight": "Main insight (max 100 chars)",
+      "action": "Specific action to take (max 80 chars)",
+      "color": "blue|green|orange|purple|red"
+    },
+    {
+      "title": "Card Title (max 30 chars)",
+      "icon": "emoji icon", 
+      "category": "fitness|sleep|nutrition|general",
+      "insight": "Main insight (max 100 chars)",
+      "action": "Specific action to take (max 80 chars)",
+      "color": "blue|green|orange|purple|red"
+    }
+  ]
+}
+
+Make insights personalized, actionable, and card-friendly. Focus on the user's specific data and goals.`;
       
       const sessionId = `session_${Date.now()}`;
       
@@ -240,9 +355,9 @@ export default function SignupScreen() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          chatinput: userInput,
+          chatinput: structuredPrompt,
           sessionId: sessionId,
-          fitbit_session: fitbitData
+          fitbit_session: `User: ${profile.user.name}, Steps: ${profile.activity.steps}, Sleep: ${profile.activity.sleepHours}h, BMI: ${profile.user.bmi}`
         })
       });
       
@@ -251,28 +366,80 @@ export default function SignupScreen() {
       }
       
       const data = await response.json();
+      const responseText = data.response || data.message || JSON.stringify(data);
       
-      // Return the AI response from the webhook
-      return data.response || data.message || JSON.stringify(data);
+      // Try to parse JSON response
+      try {
+        const parsed = JSON.parse(responseText);
+        if (parsed.cards && Array.isArray(parsed.cards)) {
+          return parsed;
+        }
+      } catch (e) {
+        console.log('Response not in JSON format, using fallback');
+      }
+      
+      // Fallback to structured cards if JSON parsing fails
+      return {
+        cards: [
+          {
+            title: "Step Up Your Game",
+            icon: "👟",
+            category: "fitness",
+            insight: `You're at ${profile.activity.steps} steps today. Great progress toward your 10,000 goal!`,
+            action: "Take a 15-minute walk to reach your daily target",
+            color: "blue"
+          },
+          {
+            title: "Sleep Optimization",
+            icon: "😴",
+            category: "sleep", 
+            insight: `${profile.activity.sleepHours} hours of sleep. You're close to the recommended 7-9 hours.`,
+            action: "Go to bed 30 minutes earlier tonight",
+            color: "purple"
+          },
+          {
+            title: "Heart Health",
+            icon: "❤️",
+            category: "general",
+            insight: `Resting heart rate of ${profile.activity.heartRate.resting} bpm shows good cardiovascular fitness.`,
+            action: "Keep up your current activity level",
+            color: "green"
+          }
+        ]
+      };
       
     } catch (error) {
       console.error('Error calling AI webhook:', error);
       
-      // Fallback to basic insights if API fails
-      return `# Health Insights for ${profile.user.name} 👋
-
-## Quick Summary
-- **BMI**: ${profile.user.bmi} 
-- **Daily Steps**: ${profile.activity.steps} (Goal: 10,000)
-- **Sleep**: ${profile.activity.sleepHours} hours
-- **Goals**: ${profile.goals.join(', ')}
-
-## Basic Recommendations
-- Aim for 10,000 steps daily
-- Get 7-9 hours of sleep
-- Stay hydrated and active
-
-*Note: AI insights temporarily unavailable. Showing basic recommendations.*`;
+      // Fallback to basic structured cards
+      return {
+        cards: [
+          {
+            title: "Daily Steps Goal",
+            icon: "👟",
+            category: "fitness",
+            insight: `Current: ${profile.activity.steps} steps. Target: 10,000 steps daily.`,
+            action: "Add a 20-minute walk to your routine",
+            color: "blue"
+          },
+          {
+            title: "Sleep Quality",
+            icon: "😴",
+            category: "sleep",
+            insight: `${profile.activity.sleepHours} hours of sleep. Aim for 7-9 hours for optimal health.`,
+            action: "Create a relaxing bedtime routine",
+            color: "purple"
+          },
+          {
+            title: "Health Summary",
+            icon: "📊",
+            category: "general",
+            insight: `BMI: ${profile.user.bmi}. You're on track with your health goals!`,
+            action: "Continue your current healthy habits",
+            color: "green"
+          }
+        ]
+      };
     }
   };
 
@@ -297,6 +464,18 @@ export default function SignupScreen() {
     setInsightsData(null);
   };
 
+  // Helper function to get card colors
+  const getCardColor = (color) => {
+    const colors = {
+      blue: '#3B82F6',
+      green: '#10B981',
+      orange: '#F59E0B',
+      purple: '#8B5CF6',
+      red: '#EF4444'
+    };
+    return colors[color] || colors.blue;
+  };
+
   // Show insights screen
   if (showInsights && insightsData) {
     return (
@@ -305,9 +484,21 @@ export default function SignupScreen() {
           Your Health Insights 🎯
         </Text>
         
-        <View style={styles.insightsContainer}>
-          <Text style={styles.insightsText}>{insightsData}</Text>
-        </View>
+        {insightsData.cards && insightsData.cards.map((card, index) => (
+          <View key={index} style={[styles.insightCard, { borderLeftColor: getCardColor(card.color) }]}>
+            <View style={styles.cardHeader}>
+              <Text style={styles.cardIcon}>{card.icon}</Text>
+              <Text style={styles.cardTitle}>{card.title}</Text>
+            </View>
+            
+            <Text style={styles.cardInsight}>{card.insight}</Text>
+            
+            <View style={styles.actionContainer}>
+              <Text style={styles.actionLabel}>💡 Action:</Text>
+              <Text style={styles.actionText}>{card.action}</Text>
+            </View>
+          </View>
+        ))}
 
         <TouchableOpacity style={styles.button} onPress={goBackToProfile}>
           <Text style={{ color: 'white', textAlign: 'center', fontWeight: 'bold' }}>
@@ -504,14 +695,56 @@ const styles = {
     marginTop: 15,
     textAlign: 'center',
   },
-  insightsContainer: {
-    backgroundColor: '#f8f9fa',
-    padding: 20,
-    borderRadius: 10,
-    marginBottom: 20,
-  },
-  insightsText: {
-    fontSize: 16,
-    lineHeight: 24,
-  },
+          insightCard: {
+          backgroundColor: 'white',
+          padding: 20,
+          borderRadius: 12,
+          marginBottom: 16,
+          borderLeftWidth: 4,
+          shadowColor: '#000',
+          shadowOffset: {
+            width: 0,
+            height: 2,
+          },
+          shadowOpacity: 0.1,
+          shadowRadius: 3.84,
+          elevation: 5,
+        },
+        cardHeader: {
+          flexDirection: 'row',
+          alignItems: 'center',
+          marginBottom: 12,
+        },
+        cardIcon: {
+          fontSize: 24,
+          marginRight: 12,
+        },
+        cardTitle: {
+          fontSize: 18,
+          fontWeight: 'bold',
+          color: '#1F2937',
+          flex: 1,
+        },
+        cardInsight: {
+          fontSize: 16,
+          color: '#4B5563',
+          lineHeight: 22,
+          marginBottom: 12,
+        },
+        actionContainer: {
+          backgroundColor: '#F3F4F6',
+          padding: 12,
+          borderRadius: 8,
+        },
+        actionLabel: {
+          fontSize: 14,
+          fontWeight: '600',
+          color: '#374151',
+          marginBottom: 4,
+        },
+        actionText: {
+          fontSize: 14,
+          color: '#6B7280',
+          lineHeight: 20,
+        },
 };
