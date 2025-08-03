@@ -1,0 +1,25 @@
+[
+  {
+    "name": "wellnessmama",
+    "base_url": "https://wellnessmama.com",
+    "start_page": "/blog/",
+    "article_selector": ".entry-content",
+    "article_link_selector": "h2.entry-title a",
+    "next_selector": ".next.page-numbers"
+  },
+  {
+    "name": "lifeextension_articles",
+    "base_url": "https://www.lifeextension.com",
+    "start_page": "/science-news",
+    "article_selector": ".article-body",
+    "article_link_selector": "h3.title a",
+    "next_selector": ".pagination .next a"
+  },
+  {
+    "name": "nutrisense_blog",
+    "base_url": "https://www.nutrisense.io",
+    "start_page": "/blog",
+    "article_selector": ".prose",
+    "article_link_selector": "a.block.border-b.border-gray-300",
+    "next_selector": ""
+  }]

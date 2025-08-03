@@ -1,53 +1,43 @@
-from flask import Flask, jsonify
-import pandas as pd
-import requests
-import os
+from fastapi import FastAPI, HTTPException
+from pydantic import BaseModel
+import pandas as pd, requests, os
 from user_activity import UserActivity
-from config import ACCESS_TOKEN, API_BASE
+from config import ACCESS_TOKEN
 
+app = FastAPI()
 
-app = Flask(__name__)
+class Status(BaseModel):
+    status: str
+    date: str | None = None
+    rows: int | None = None
+    data: list | None = None
+    message: str | None = None
 
-@app.route("/update-and-send", methods=["POST"])
+@app.post("/update-and-send", response_model=Status)
 def update_and_send():
     try:
-        # Step 1: Update CSV
-        activity = UserActivity()
-        activity.get_user_activity()
-        print("CSV updated successfully.")
-
-        # Step 2: Load updated CSV
+        UserActivity().get_user_activity()
         df = pd.read_csv("intraday_activity_metrics.csv")
-
         if df.empty:
-            return jsonify({"status": "no data"}), 204
-
-        # Step 3: Return the latest day's data
+            raise HTTPException(status_code=204, detail="no data")
         latest_date = df["date"].max()
         latest_data = df[df["date"] == latest_date]
-
-        return jsonify({
+        return {
             "status": "success",
             "date": latest_date,
             "rows": len(latest_data),
             "data": latest_data.to_dict(orient="records")
-        })
-
+        }
+    except HTTPException as e:
+        raise e
     except Exception as e:
-        return jsonify({"status": "error", "message": str(e)}), 500
+        raise HTTPException(status_code=500, detail=str(e))
 
-if __name__ == "__main__":
-    app.run(debug=True, port=5001)
-
-import requests
-
-@app.route("/profile", methods=["POST"])
-def get_user(self):
-    profile_url = "https://api.fitbit.com/1/user/-/profile.json"
-    headers = {
-        "Authorization": f"Bearer {ACCESS_TOKEN}"
-    }
-    res = requests.get(profile_url, headers=headers)
-    print(res.json())
+@app.post("/profile")
+def get_user():
+    url = "https://api.fitbit.com/1/user/-/profile.json"
+    headers = {"Authorization": f"Bearer {ACCESS_TOKEN}"}
+    res = requests.get(url, headers=headers)
     if res.status_code != 200:
-        raise Exception(f"Failed to fetch Fitbit profile: {res.status_code}, {res.text}")
+        raise HTTPException(status_code=res.status_code, detail=res.text)
+    return res.json()["user"]
