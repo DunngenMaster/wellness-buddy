@@ -307,6 +307,9 @@ export default function SignupScreen() {
   };
 
   const getClaudeInsights = async (profile) => {
+    console.log('=== STARTING CLAUDE INSIGHTS GENERATION ===');
+    console.log('User profile:', profile);
+    
     try {
       // Create structured prompt for card-friendly insights
       const structuredPrompt = `Generate exactly 3 health insight cards for this user profile. 
@@ -354,6 +357,13 @@ Make insights personalized, actionable, and card-friendly. Focus on the user's s
       
       const sessionId = `session_${Date.now()}`;
       
+      console.log('Making API call to Claude webhook...');
+      console.log('Request payload:', {
+        chatinput: structuredPrompt,
+        sessionId: sessionId,
+        fitbit_session: `User: ${profile.user.name}, Steps: ${profile.activity.steps}, Sleep: ${profile.activity.sleepHours}h, BMI: ${profile.user.bmi}`
+      });
+      
       // Make API call to your webhook
       const response = await fetch('https://healthstuffentreprenerufi.app.n8n.cloud/webhook/a7717fe9-5fe8-42bd-a0d1-6a52cf884c9f', {
         method: 'POST',
@@ -367,22 +377,45 @@ Make insights personalized, actionable, and card-friendly. Focus on the user's s
         })
       });
       
+      console.log('API Response status:', response.status);
+      console.log('API Response ok:', response.ok);
+      
       if (!response.ok) {
         throw new Error(`API call failed: ${response.status}`);
       }
       
       const data = await response.json();
-      const responseText = data.response || data.message || JSON.stringify(data);
+      console.log('Raw API Response:', data);
+      
+      // Handle the actual API response format (array with output field)
+      let responseText = '';
+      if (Array.isArray(data) && data[0] && data[0].output) {
+        responseText = data[0].output;
+        console.log('Extracted output from array:', responseText);
+      } else if (data.response) {
+        responseText = data.response;
+      } else if (data.message) {
+        responseText = data.message;
+      } else {
+        responseText = JSON.stringify(data);
+      }
+      
+      console.log('Response text to parse:', responseText);
       
       // Try to parse JSON response
       try {
         const parsed = JSON.parse(responseText);
+        console.log('Parsed JSON:', parsed);
         if (parsed.cards && Array.isArray(parsed.cards)) {
           return parsed;
         }
       } catch (e) {
+        console.log('JSON parsing failed:', e.message);
         console.log('Response not in JSON format, using fallback');
       }
+      
+      console.log('=== USING FALLBACK CARDS ===');
+      console.log('JSON parsing failed, using hardcoded fallback cards');
       
       // Fallback to structured cards if JSON parsing fails
       return {
@@ -415,7 +448,10 @@ Make insights personalized, actionable, and card-friendly. Focus on the user's s
       };
       
     } catch (error) {
-      console.error('Error calling AI webhook:', error);
+      console.error('=== ERROR CALLING AI WEBHOOK ===');
+      console.error('Error details:', error);
+      console.error('Error message:', error.message);
+      console.error('Error stack:', error.stack);
       
       // Fallback to basic structured cards
       return {
@@ -613,14 +649,14 @@ Make insights personalized, actionable, and card-friendly. Focus on the user's s
     }
   };
 
-  // Helper function to get card colors
+  // Helper function to get card colors - matching the new palette
   const getCardColor = (color) => {
     const colors = {
-      blue: '#3B82F6',
-      green: '#10B981',
-      orange: '#F59E0B',
-      purple: '#8B5CF6',
-      red: '#EF4444'
+      blue: '#4fd1c7',    // Teal
+      green: '#22c55e',   // Green
+      orange: '#f59e0b',  // Orange
+      purple: '#06b6d4',  // Cyan
+      red: '#ef4444'      // Red
     };
     return colors[color] || colors.blue;
   };
@@ -628,7 +664,7 @@ Make insights personalized, actionable, and card-friendly. Focus on the user's s
   // Show chat screen
   if (showChat) {
     return (
-      <View style={{ flex: 1, marginTop: 50 }}>
+      <View style={{ flex: 1, marginTop: 50, backgroundColor: '#0f1419' }}>
         <View style={styles.chatHeader}>
           <View style={styles.chatHeaderContent}>
             <Text style={styles.chatHeaderTitle}>
@@ -712,8 +748,8 @@ Make insights personalized, actionable, and card-friendly. Focus on the user's s
   // Show insights screen
   if (showInsights && insightsData) {
     return (
-      <ScrollView style={{ padding: 20, marginTop: 50 }}>
-        <Text style={{ fontSize: 24, fontWeight: 'bold', marginBottom: 20, textAlign: 'center' }}>
+      <ScrollView style={{ padding: 20, marginTop: 50, backgroundColor: '#0f1419', flex: 1 }}>
+        <Text style={{ fontSize: 24, fontWeight: 'bold', marginBottom: 20, textAlign: 'center', color: '#4fd1c7' }}>
           Your Health Insights 🎯
         </Text>
         
@@ -767,8 +803,8 @@ Make insights personalized, actionable, and card-friendly. Focus on the user's s
   // Show existing profile
   if (showProfile && userProfile) {
     return (
-      <ScrollView style={{ padding: 20, marginTop: 50 }}>
-        <Text style={{ fontSize: 24, fontWeight: 'bold', marginBottom: 20, textAlign: 'center' }}>
+      <ScrollView style={{ padding: 20, marginTop: 50, backgroundColor: '#0f1419', flex: 1 }}>
+        <Text style={{ fontSize: 24, fontWeight: 'bold', marginBottom: 20, textAlign: 'center', color: '#4fd1c7' }}>
           Welcome Back! 👋
         </Text>
         
@@ -824,8 +860,8 @@ Make insights personalized, actionable, and card-friendly. Focus on the user's s
 
   // Show import screen
   return (
-    <ScrollView style={{ padding: 20, marginTop: 50 }}>
-      <Text style={{ fontSize: 24, fontWeight: 'bold', marginBottom: 20, textAlign: 'center' }}>
+    <ScrollView style={{ padding: 20, marginTop: 50, backgroundColor: '#0f1419', flex: 1 }}>
+      <Text style={{ fontSize: 24, fontWeight: 'bold', marginBottom: 20, textAlign: 'center', color: '#4fd1c7' }}>
         Welcome to Wellness Buddy 🏥
       </Text>
 
@@ -876,58 +912,65 @@ Make insights personalized, actionable, and card-friendly. Focus on the user's s
 
 const styles = {
   importSection: {
-    backgroundColor: '#e3f2fd',
+    backgroundColor: '#1a2332',
     padding: 20,
     borderRadius: 10,
     marginBottom: 20,
+    borderWidth: 1,
+    borderColor: '#4fd1c7',
   },
   importButton: {
-    backgroundColor: '#2196F3',
+    backgroundColor: '#4fd1c7',
     padding: 15,
     borderRadius: 8,
   },
   buttonDisabled: {
-    backgroundColor: '#ccc',
+    backgroundColor: '#64748b',
   },
   button: {
-    backgroundColor: '#007AFF',
+    backgroundColor: '#4fd1c7',
     padding: 15,
     marginTop: 20,
     borderRadius: 10,
   },
   resetButton: {
-    backgroundColor: '#fff',
+    backgroundColor: '#1a2332',
     padding: 15,
     marginTop: 10,
     borderRadius: 10,
     borderWidth: 1,
-    borderColor: '#ff4444',
+    borderColor: '#ef4444',
   },
   infoSection: {
-    backgroundColor: '#f8f9fa',
+    backgroundColor: '#1a2332',
     padding: 15,
     borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#4fd1c7',
   },
   infoItem: {
     fontSize: 14,
-    color: '#666',
+    color: '#94a3b8',
     marginBottom: 5,
   },
   profileContainer: {
-    backgroundColor: '#f8f9fa',
+    backgroundColor: '#1a2332',
     padding: 20,
     borderRadius: 10,
     marginBottom: 20,
+    borderWidth: 1,
+    borderColor: '#4fd1c7',
   },
   profileName: {
     fontSize: 24,
     fontWeight: 'bold',
     marginBottom: 10,
     textAlign: 'center',
+    color: '#4fd1c7',
   },
   profileDetails: {
     fontSize: 16,
-    color: '#666',
+    color: '#94a3b8',
     marginBottom: 5,
     textAlign: 'center',
   },
@@ -937,33 +980,36 @@ const styles = {
     marginTop: 15,
     marginBottom: 10,
     textAlign: 'center',
+    color: '#4fd1c7',
   },
   goalItem: {
     fontSize: 16,
-    color: '#007AFF',
+    color: '#4fd1c7',
     marginBottom: 5,
     textAlign: 'center',
   },
   syncInfo: {
     fontSize: 12,
-    color: '#999',
+    color: '#64748b',
     marginTop: 15,
     textAlign: 'center',
   },
           insightCard: {
-          backgroundColor: 'white',
+          backgroundColor: '#1a2332',
           padding: 20,
           borderRadius: 12,
           marginBottom: 16,
           borderLeftWidth: 4,
-          shadowColor: '#000',
+          borderWidth: 1,
+          borderColor: '#4fd1c7',
+          shadowColor: '#4fd1c7',
           shadowOffset: {
             width: 0,
-            height: 2,
+            height: 4,
           },
-          shadowOpacity: 0.1,
-          shadowRadius: 3.84,
-          elevation: 5,
+          shadowOpacity: 0.2,
+          shadowRadius: 8,
+          elevation: 8,
         },
         cardHeader: {
           flexDirection: 'row',
@@ -977,29 +1023,31 @@ const styles = {
         cardTitle: {
           fontSize: 18,
           fontWeight: 'bold',
-          color: '#1F2937',
+          color: '#4fd1c7',
           flex: 1,
         },
         cardInsight: {
           fontSize: 16,
-          color: '#4B5563',
+          color: '#94a3b8',
           lineHeight: 22,
           marginBottom: 12,
         },
         actionContainer: {
-          backgroundColor: '#F3F4F6',
+          backgroundColor: '#0f1419',
           padding: 12,
           borderRadius: 8,
+          borderWidth: 1,
+          borderColor: '#4fd1c7',
         },
         actionLabel: {
           fontSize: 14,
           fontWeight: '600',
-          color: '#374151',
+          color: '#4fd1c7',
           marginBottom: 4,
         },
         actionText: {
           fontSize: 14,
-          color: '#6B7280',
+          color: '#94a3b8',
           lineHeight: 20,
         },
         buttonContainer: {
@@ -1016,14 +1064,14 @@ const styles = {
           justifyContent: 'space-between',
           alignItems: 'center',
           padding: 20,
-          backgroundColor: '#F8FAFC',
+          backgroundColor: '#1a2332',
           borderBottomWidth: 1,
-          borderBottomColor: '#E2E8F0',
+          borderBottomColor: '#4fd1c7',
         },
         chatHeaderTitle: {
           fontSize: 18,
           fontWeight: 'bold',
-          color: '#1F2937',
+          color: '#4fd1c7',
         },
         chatHeaderContent: {
           flex: 1,
@@ -1031,7 +1079,7 @@ const styles = {
         chatHeaderSubtitle: {
           fontSize: 14,
           fontWeight: 'normal',
-          color: '#6B7280',
+          color: '#94a3b8',
         },
         chatHeaderButtons: {
           flexDirection: 'row',
@@ -1054,7 +1102,7 @@ const styles = {
         },
         closeButtonText: {
           fontSize: 20,
-          color: '#6B7280',
+          color: '#94a3b8',
         },
         chatContainer: {
           flex: 1,
@@ -1066,31 +1114,33 @@ const styles = {
         },
         userMessage: {
           alignSelf: 'flex-end',
-          backgroundColor: '#3B82F6',
+          backgroundColor: '#4fd1c7',
           borderRadius: 18,
           paddingHorizontal: 16,
           paddingVertical: 10,
         },
         assistantMessage: {
           alignSelf: 'flex-start',
-          backgroundColor: '#F3F4F6',
+          backgroundColor: '#1a2332',
           borderRadius: 18,
           paddingHorizontal: 16,
           paddingVertical: 10,
+          borderWidth: 1,
+          borderColor: '#4fd1c7',
         },
         messageText: {
           fontSize: 16,
           lineHeight: 22,
         },
         userMessageText: {
-          color: 'white',
+          color: '#0f1419',
         },
         assistantMessageText: {
-          color: '#1F2937',
+          color: '#94a3b8',
         },
         messageTime: {
           fontSize: 12,
-          color: '#9CA3AF',
+          color: '#64748b',
           marginTop: 4,
           textAlign: 'right',
         },
@@ -1100,36 +1150,37 @@ const styles = {
         },
         typingText: {
           fontSize: 14,
-          color: '#6B7280',
+          color: '#94a3b8',
           fontStyle: 'italic',
         },
         typingDots: {
           fontSize: 16,
-          color: '#6B7280',
+          color: '#94a3b8',
           marginLeft: 4,
         },
         chatInputContainer: {
           flexDirection: 'row',
           padding: 15,
-          backgroundColor: '#F8FAFC',
+          backgroundColor: '#1a2332',
           borderTopWidth: 1,
-          borderTopColor: '#E2E8F0',
+          borderTopColor: '#4fd1c7',
           alignItems: 'flex-end',
         },
         chatInput: {
           flex: 1,
-          backgroundColor: 'white',
+          backgroundColor: '#0f1419',
           borderRadius: 20,
           paddingHorizontal: 16,
           paddingVertical: 12,
           marginRight: 10,
           maxHeight: 100,
           borderWidth: 1,
-          borderColor: '#E2E8F0',
+          borderColor: '#4fd1c7',
           fontSize: 16,
+          color: '#94a3b8',
         },
         sendButton: {
-          backgroundColor: '#3B82F6',
+          backgroundColor: '#4fd1c7',
           borderRadius: 20,
           width: 40,
           height: 40,
@@ -1137,7 +1188,7 @@ const styles = {
           alignItems: 'center',
         },
         sendButtonDisabled: {
-          backgroundColor: '#9CA3AF',
+          backgroundColor: '#64748b',
         },
         sendButtonText: {
           fontSize: 16,
