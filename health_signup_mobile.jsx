@@ -41,6 +41,9 @@ export default function SignupScreen() {
   const [chatLoading, setChatLoading] = useState(false);
   const [currentCardContext, setCurrentCardContext] = useState(null);
   const [activeChatCard, setActiveChatCard] = useState(null);
+  const [showProductRecommendations, setShowProductRecommendations] = useState(false);
+  const [productRecommendations, setProductRecommendations] = useState(null);
+  const [timeLapseData, setTimeLapseData] = useState(null);
 
   // Load existing profile on app start
   useEffect(() => {
@@ -407,6 +410,7 @@ Make insights personalized, actionable, and card-friendly. Focus on the user's s
         const parsed = JSON.parse(responseText);
         console.log('Parsed JSON:', parsed);
         if (parsed.cards && Array.isArray(parsed.cards)) {
+          console.log('Parsed cards:', parsed.cards);
           return parsed;
         }
       } catch (e) {
@@ -516,6 +520,44 @@ Make insights personalized, actionable, and card-friendly. Focus on the user's s
     setCurrentCardContext(null);
     // Keep showInsights and insightsData so we return to the cards view
     // Keep activeChatCard to show which card was active
+  };
+
+  const generateProductRecommendations = async () => {
+    if (!userProfile) return;
+    
+    setLoading(true);
+    try {
+      console.log('=== STARTING PRODUCT RECOMMENDATIONS ===');
+      
+      // Step 1: Generate new time-lapsed health data
+      const newHealthData = generateTimeLapsedData(userProfile);
+      console.log('New time-lapsed data:', newHealthData);
+      
+      // Step 2: Update user profile with new data
+      const updatedProfile = {
+        ...userProfile,
+        ...newHealthData,
+        lastSync: new Date().toISOString()
+      };
+      
+      // Step 3: Save updated profile
+      await saveUserProfile(updatedProfile);
+      setUserProfile(updatedProfile);
+      
+      // Step 4: Get product recommendations based on changes
+      const recommendations = await getProductRecommendations(updatedProfile, userProfile);
+      setProductRecommendations(recommendations);
+      setTimeLapseData(newHealthData);
+      setShowProductRecommendations(true);
+      
+      console.log('Product recommendations completed successfully');
+      
+    } catch (error) {
+      console.error('Product recommendations failed:', error);
+      Alert.alert('Error', 'Failed to get product recommendations. Please try again.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const startChatSession = (cardContext = null) => {
@@ -661,6 +703,165 @@ Make insights personalized, actionable, and card-friendly. Focus on the user's s
     return colors[color] || colors.blue;
   };
 
+  // Generate realistic time-lapsed health data
+  const generateTimeLapsedData = (currentProfile) => {
+    const changes = {
+      activity: {
+        steps: Math.max(0, currentProfile.activity.steps + Math.floor(Math.random() * 2000) - 1000), // ±1000 steps
+        sleepHours: Math.max(4, Math.min(12, currentProfile.activity.sleepHours + (Math.random() - 0.5) * 2)), // ±1 hour
+        heartRate: {
+          resting: Math.max(50, Math.min(100, currentProfile.activity.heartRate.resting + Math.floor(Math.random() * 10) - 5)) // ±5 bpm
+        }
+      },
+      user: {
+        weight: Math.max(40, Math.min(150, currentProfile.user.weight + (Math.random() - 0.5) * 2)), // ±1 kg
+        height: currentProfile.user.height, // Height usually doesn't change
+        age: currentProfile.user.age + 1, // Age increases by 1 year
+        bmi: 0 // Will be calculated
+      }
+    };
+    
+    // Recalculate BMI
+    changes.user.bmi = (changes.user.weight / Math.pow(changes.user.height / 100, 2)).toFixed(1);
+    
+    return changes;
+  };
+
+  // Get product recommendations based on health changes
+  const getProductRecommendations = async (newProfile, oldProfile) => {
+    try {
+      console.log('Getting product recommendations...');
+      
+      const changes = {
+        stepsChange: newProfile.activity.steps - oldProfile.activity.steps,
+        sleepChange: newProfile.activity.sleepHours - oldProfile.activity.sleepHours,
+        weightChange: newProfile.user.weight - oldProfile.user.weight,
+        heartRateChange: newProfile.activity.heartRate.resting - oldProfile.activity.heartRate.resting,
+        bmiChange: parseFloat(newProfile.user.bmi) - parseFloat(oldProfile.user.bmi)
+      };
+      
+      console.log('Health changes detected:', changes);
+      
+      const prompt = `Based on these health changes over time, recommend 3 specific products that would help improve the user's health:
+
+HEALTH CHANGES:
+- Steps: ${oldProfile.activity.steps} → ${newProfile.activity.steps} (${changes.stepsChange > 0 ? '+' : ''}${changes.stepsChange})
+- Sleep: ${oldProfile.activity.sleepHours}h → ${newProfile.activity.sleepHours}h (${changes.sleepChange > 0 ? '+' : ''}${changes.sleepChange.toFixed(1)}h)
+- Weight: ${oldProfile.user.weight}kg → ${newProfile.user.weight}kg (${changes.weightChange > 0 ? '+' : ''}${changes.weightChange.toFixed(1)}kg)
+- Heart Rate: ${oldProfile.activity.heartRate.resting}bpm → ${newProfile.activity.heartRate.resting}bpm (${changes.heartRateChange > 0 ? '+' : ''}${changes.heartRateChange})
+- BMI: ${oldProfile.user.bmi} → ${newProfile.user.bmi} (${changes.bmiChange > 0 ? '+' : ''}${changes.bmiChange.toFixed(1)})
+
+USER PROFILE: ${newProfile.user.name}, Age: ${newProfile.user.age}, Goals: ${newProfile.goals.join(', ')}
+
+REQUIRED FORMAT - Return ONLY valid JSON:
+{
+  "products": [
+    {
+      "name": "Product Name",
+      "category": "fitness|sleep|nutrition|monitoring",
+      "description": "Brief description (max 100 chars)",
+      "benefit": "Specific health benefit (max 80 chars)",
+      "price": "$XX-XXX",
+      "icon": "emoji"
+    },
+    {
+      "name": "Product Name",
+      "category": "fitness|sleep|nutrition|monitoring", 
+      "description": "Brief description (max 100 chars)",
+      "benefit": "Specific health benefit (max 80 chars)",
+      "price": "$XX-XXX",
+      "icon": "emoji"
+    },
+    {
+      "name": "Product Name",
+      "category": "fitness|sleep|nutrition|monitoring",
+      "description": "Brief description (max 100 chars)", 
+      "benefit": "Specific health benefit (max 80 chars)",
+      "price": "$XX-XXX",
+      "icon": "emoji"
+    }
+  ]
+}
+
+Recommend products that address the specific health changes and user goals.`;
+
+      const response = await fetch('https://healthstuffentreprenerufi.app.n8n.cloud/webhook/a7717fe9-5fe8-42bd-a0d1-6a52cf884c9f', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          chatinput: prompt,
+          sessionId: `products_${Date.now()}`,
+          fitbit_session: `Product recommendations for ${newProfile.user.name}`
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`Product API failed: ${response.status}`);
+      }
+
+      const data = await response.json();
+      console.log('Product API Response:', data);
+      
+      // Handle the same response format as insights
+      let responseText = '';
+      if (Array.isArray(data) && data[0] && data[0].output) {
+        responseText = data[0].output;
+      } else if (data.response) {
+        responseText = data.response;
+      } else if (data.message) {
+        responseText = data.message;
+      } else {
+        responseText = JSON.stringify(data);
+      }
+      
+      // Try to parse JSON response
+      try {
+        const parsed = JSON.parse(responseText);
+        if (parsed.products && Array.isArray(parsed.products)) {
+          return parsed;
+        }
+      } catch (e) {
+        console.log('Product response not in JSON format, using fallback');
+      }
+      
+      // Fallback to basic product recommendations
+      return {
+        products: [
+          {
+            name: "Smart Fitness Tracker",
+            category: "fitness",
+            description: "Advanced activity monitoring with heart rate tracking",
+            benefit: "Improve step count and fitness motivation",
+            price: "$150-300",
+            icon: "⌚"
+          },
+          {
+            name: "Sleep Optimization Pillow",
+            category: "sleep",
+            description: "Ergonomic pillow designed for better sleep quality",
+            benefit: "Enhance sleep duration and quality",
+            price: "$80-150",
+            icon: "🛏️"
+          },
+          {
+            name: "Nutrition Planning App",
+            category: "nutrition",
+            description: "Personalized meal plans and calorie tracking",
+            benefit: "Support weight management goals",
+            price: "$10-20/month",
+            icon: "📱"
+          }
+        ]
+      };
+      
+    } catch (error) {
+      console.error('Product recommendations failed:', error);
+      return null;
+    }
+  };
+
   // Show chat screen
   if (showChat) {
     return (
@@ -742,6 +943,82 @@ Make insights personalized, actionable, and card-friendly. Focus on the user's s
           </TouchableOpacity>
         </View>
       </View>
+    );
+  }
+
+  // Show product recommendations screen
+  if (showProductRecommendations && productRecommendations && timeLapseData) {
+    return (
+      <ScrollView style={{ padding: 20, marginTop: 50, backgroundColor: '#0f1419', flex: 1 }}>
+        <Text style={{ fontSize: 24, fontWeight: 'bold', marginBottom: 20, textAlign: 'center', color: '#4fd1c7' }}>
+          🛍️ Personalized Product Recommendations
+        </Text>
+        
+        {/* Health Changes Summary */}
+        <View style={styles.changesContainer}>
+          <Text style={styles.changesTitle}>Health Analysis:</Text>
+          <View style={styles.changeItem}>
+            <Text style={styles.changeLabel}>Steps:</Text>
+            <Text style={styles.changeValue}>
+              {userProfile.activity.steps} → {userProfile.activity.steps + timeLapseData.activity.steps - userProfile.activity.steps}
+            </Text>
+          </View>
+          <View style={styles.changeItem}>
+            <Text style={styles.changeLabel}>Sleep:</Text>
+            <Text style={styles.changeValue}>
+              {userProfile.activity.sleepHours}h → {timeLapseData.activity.sleepHours.toFixed(1)}h
+            </Text>
+          </View>
+          <View style={styles.changeItem}>
+            <Text style={styles.changeLabel}>Weight:</Text>
+            <Text style={styles.changeValue}>
+              {userProfile.user.weight}kg → {timeLapseData.user.weight.toFixed(1)}kg
+            </Text>
+          </View>
+          <View style={styles.changeItem}>
+            <Text style={styles.changeLabel}>Heart Rate:</Text>
+            <Text style={styles.changeValue}>
+              {userProfile.activity.heartRate.resting}bpm → {timeLapseData.activity.heartRate.resting}bpm
+            </Text>
+          </View>
+        </View>
+
+        {/* Product Recommendations */}
+        <Text style={styles.recommendationsTitle}>Recommended Products:</Text>
+        
+        {productRecommendations.products && productRecommendations.products.map((product, index) => (
+          <View key={index} style={styles.productCard}>
+            <View style={styles.productHeader}>
+              <Text style={styles.productIcon}>{product.icon}</Text>
+              <Text style={styles.productName}>{product.name}</Text>
+              <Text style={styles.productPrice}>{product.price}</Text>
+            </View>
+            
+            <Text style={styles.productDescription}>{product.description}</Text>
+            
+            <View style={styles.benefitContainer}>
+              <Text style={styles.benefitLabel}>💡 Benefit:</Text>
+              <Text style={styles.benefitText}>{product.benefit}</Text>
+            </View>
+            
+            <TouchableOpacity style={styles.buyButton}>
+              <Text style={styles.buyButtonText}>🛒 Buy Now</Text>
+            </TouchableOpacity>
+          </View>
+        ))}
+
+        <View style={styles.buttonContainer}>
+          <TouchableOpacity style={styles.button} onPress={() => {
+            setShowProductRecommendations(false);
+            setProductRecommendations(null);
+            setTimeLapseData(null);
+          }}>
+            <Text style={{ color: 'white', textAlign: 'center', fontWeight: 'bold' }}>
+              Back to Profile
+            </Text>
+          </TouchableOpacity>
+        </View>
+      </ScrollView>
     );
   }
 
@@ -849,6 +1126,16 @@ Make insights personalized, actionable, and card-friendly. Focus on the user's s
           )}
         </TouchableOpacity>
 
+        <TouchableOpacity 
+          style={[styles.refreshButton, loading && styles.buttonDisabled]} 
+          onPress={generateProductRecommendations}
+          disabled={loading}
+        >
+          <Text style={styles.refreshButtonText}>
+            🛍️ Get Product Recommendations
+          </Text>
+        </TouchableOpacity>
+
         <TouchableOpacity style={styles.resetButton} onPress={resetProfile}>
           <Text style={{ color: '#ff4444', textAlign: 'center', fontWeight: 'bold' }}>
             Reset Profile
@@ -891,10 +1178,7 @@ Make insights personalized, actionable, and card-friendly. Focus on the user's s
             </Text>
           )}
         </TouchableOpacity>
-        
-        <Text style={{ fontSize: 12, color: '#666', marginTop: 10, textAlign: 'center' }}>
-          Demo: Uses sample Fitbit data to create profile
-        </Text>
+     
       </View>
 
       <View style={styles.infoSection}>
@@ -940,6 +1224,18 @@ const styles = {
     borderRadius: 10,
     borderWidth: 1,
     borderColor: '#ef4444',
+  },
+  refreshButton: {
+    backgroundColor: '#f59e0b',
+    padding: 15,
+    marginTop: 15,
+    borderRadius: 10,
+  },
+  refreshButtonText: {
+    color: '#0f1419',
+    textAlign: 'center',
+    fontWeight: 'bold',
+    fontSize: 14,
   },
   infoSection: {
     backgroundColor: '#1a2332',
@@ -1216,5 +1512,108 @@ const styles = {
           color: 'white',
           fontSize: 12,
           fontWeight: '600',
+        },
+        changesContainer: {
+          backgroundColor: '#1a2332',
+          padding: 20,
+          borderRadius: 12,
+          marginBottom: 20,
+          borderWidth: 1,
+          borderColor: '#4fd1c7',
+        },
+        changesTitle: {
+          fontSize: 18,
+          fontWeight: 'bold',
+          color: '#4fd1c7',
+          marginBottom: 15,
+          textAlign: 'center',
+        },
+        changeItem: {
+          flexDirection: 'row',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          marginBottom: 10,
+        },
+        changeLabel: {
+          fontSize: 16,
+          color: '#94a3b8',
+          fontWeight: '600',
+        },
+        changeValue: {
+          fontSize: 16,
+          color: '#4fd1c7',
+          fontWeight: 'bold',
+        },
+        recommendationsTitle: {
+          fontSize: 20,
+          fontWeight: 'bold',
+          color: '#4fd1c7',
+          marginBottom: 15,
+          textAlign: 'center',
+        },
+        productCard: {
+          backgroundColor: '#1a2332',
+          padding: 20,
+          borderRadius: 12,
+          marginBottom: 16,
+          borderWidth: 1,
+          borderColor: '#f59e0b',
+        },
+        productHeader: {
+          flexDirection: 'row',
+          alignItems: 'center',
+          marginBottom: 12,
+        },
+        productIcon: {
+          fontSize: 24,
+          marginRight: 12,
+        },
+        productName: {
+          fontSize: 18,
+          fontWeight: 'bold',
+          color: '#f59e0b',
+          flex: 1,
+        },
+        productPrice: {
+          fontSize: 16,
+          fontWeight: 'bold',
+          color: '#22c55e',
+        },
+        productDescription: {
+          fontSize: 14,
+          color: '#94a3b8',
+          lineHeight: 20,
+          marginBottom: 12,
+        },
+        benefitContainer: {
+          backgroundColor: '#0f1419',
+          padding: 12,
+          borderRadius: 8,
+          marginBottom: 12,
+          borderWidth: 1,
+          borderColor: '#f59e0b',
+        },
+        benefitLabel: {
+          fontSize: 14,
+          fontWeight: '600',
+          color: '#f59e0b',
+          marginBottom: 4,
+        },
+        benefitText: {
+          fontSize: 14,
+          color: '#94a3b8',
+          lineHeight: 18,
+        },
+        buyButton: {
+          backgroundColor: '#f59e0b',
+          paddingVertical: 10,
+          paddingHorizontal: 20,
+          borderRadius: 8,
+          alignItems: 'center',
+        },
+        buyButtonText: {
+          color: '#0f1419',
+          fontSize: 16,
+          fontWeight: 'bold',
         },
 };
